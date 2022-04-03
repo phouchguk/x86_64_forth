@@ -8,7 +8,6 @@
 	dq _LINK
 	%define _LINK $
 	db %1, %2
-	align CELLL, db 0
 %3:
 	dq %3_CODE
 %3_CODE:
@@ -18,7 +17,6 @@
 	dq _LINK
 	%define _LINK $
 	db %1, %2
-	align CELLL, db 0
 %3:	dq DOLST
 	%endmacro
 
@@ -71,7 +69,7 @@ DOCON:
 
 	mov rsi, r10		; restore rsi
 
-	mov al, [qword inchr]
+	mov al, [inchr]
 	push rax		; the character
 
 	mov rax, -1
@@ -89,7 +87,7 @@ DOCON:
 
 	mov rsi, r10		; restore rsi
 
-	mov al, [qword inchr]
+	mov al, [inchr]
 	push rax		; the character
 
 	$NEXT
