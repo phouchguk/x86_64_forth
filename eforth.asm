@@ -184,6 +184,25 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
+	;; C! ( c b -- )
+	;; Pop the data to byte memory.
+	$CODE 2,'C!',CSTOR
+	pop rbx			; pop address b
+	pop rax			; pop byte c
+	mov [rbx], al		; store c in b
+	$NEXT
+
+
+	;; C@ ( b -- c )
+	;; Push byte memory location to the data stack.
+	$CODE 2,'C@',CAT
+	pop rbx			; pop address b
+	xor rax, rax		; clear rax to receive one byte
+	mov al, [ebx]		; get one byte c at b
+	push rax		; push c
+	$NEXT
+
+
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	$COLON 7,'TESTABC',TESTABC
@@ -193,7 +212,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq TESTABC,DOLIT,10,DOLIT,mem,STORE,DOLIT,mem,ATT,EMIT,BYE,EXITT
+	dq TESTABC,DOLIT,10,DOLIT,mem,CSTOR,DOLIT,mem,CAT,EMIT,BYE,EXITT
 
 _start:
 	mov rax, rsp
