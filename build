@@ -1,0 +1,3 @@
+nasm -f elf64 eforth.asm
+ld eforth.o -o eforth
+./eforth
