@@ -1,6 +1,7 @@
 	BITS 64
 
 	%define CELLL 8
+	%define COMPO 040h
 
 	%assign _LINK 0
 
@@ -47,16 +48,28 @@ DOCON:
 	push rax
 	$NEXT
 
+
+	;; EXIT ( -- )
+	;; Terminate a colon definition.
+
 	$CODE 4,'EXIT',EXITT
 	xchg rbp, rsp
 	pop rsi
 	xchg rbp, rsp
 	$NEXT
 
+
+	;; BYE ( -- )
+	;; Exit eForth.
+
 	$CODE 3,'BYE',BYE
 	mov rax, 60		; nr
 	mov rdi,  0		; exit code
 	syscall
+
+
+	;; ?RX (-- c T | F)
+	;; Return input character and true, or a false and no input.
 
 	$CODE 4,'?KEY',QKEY
 	mov r10, rsi		; preserve rsi
@@ -77,6 +90,10 @@ DOCON:
 
 	$NEXT
 
+
+	;; KEY (-- c)
+	;; Wait for and return an input character.
+
 	$CODE 3,'KEY',KEY
 	mov r10, rsi		; preserve rsi
 	mov rax, 0 		; nr
@@ -91,6 +108,10 @@ DOCON:
 	push rax		; the character
 
 	$NEXT
+
+
+	;; EMIT (c --)
+	;; Send character c to the output device.
 
 	$CODE 4,'EMIT',EMIT
 	pop rax
@@ -108,8 +129,34 @@ DOCON:
 
 	$NEXT
 
+
+	;; EXECUTE (cfa --)
+	;; Execute the word at code field address.
+
+	$CODE 7,'EXECUTE',EXECUTE
+	pop rax
+	jmp [rax]
+
+
+	;; DOLIT (-- w)
+	;; Push an inline literal.
+
+	$CODE COMPO+5,'dolit',DOLIT
+	lodsq
+	push rax
+	$NEXT
+
+
+	;; ?BRANCH (f -- )
+	;; Branch if flag is zero.
+
+	$CODE COMPO+7,'?branch',QBRAN
+
+
+	;; TEST ( -- )
+	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq KEY,EMIT,BYE,EXITT
+	dq DOLIT,119,EMIT,BYE,EXITT
 
 _start:
 	mov rax, rsp
