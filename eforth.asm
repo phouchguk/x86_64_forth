@@ -151,12 +151,36 @@ DOCON:
 	;; Branch if flag is zero.
 
 	$CODE COMPO+7,'?branch',QBRAN
+	pop rax			; pop flag
+	or rax, rax		; flag=0?
+	jz BRAN1		; yes, do branch
+	add rsi, CELLL		; point IP to next token
+	$NEXT
 
+
+	;; BRANCH ( -- )
+	;; Branch to an inline address
+
+	$CODE COMPO+6,'branch',BRAN
+BRAN1:	mov rsi, [rsi]		; IP=[IP]. Do the branching.
+
+
+	;; DONXT ( -- )
+	;; Run time code for the single index loop
+
+	$CODE COMPO+5,'donxt',DONXT
+	sub qword [rbp], 1	; decrement loop index on the return stack
+	jc NEXT1		; decrement below 0?
+	mov rsi, [rsi]		; no, continue loop. IP=[IP]
+	$NEXT
+NEXT1:	add rbp, CELLL		; pop loop index
+	add rsi, CELLL		; exit loop, increment IP to next token
+	$NEXT
 
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq DOLIT,119,EMIT,BYE,EXITT
+	dq DOLIT,10,DOLIT,97,DOLIT,119,EMIT,EMIT,EMIT,BYE,EXITT
 
 _start:
 	mov rax, rsp
