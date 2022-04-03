@@ -177,10 +177,15 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	add rsi, CELLL		; exit loop, increment IP to next token
 	$NEXT
 
+	;; TEST COLON CALLS ( -- )
+	;; Test colon calls.
+	$COLON 7,'TESTABC',TESTABC
+	dq DOLIT,99,DOLIT,98,DOLIT,97,EMIT,EMIT,EMIT,EXITT
+
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq DOLIT,10,DOLIT,97,DOLIT,119,EMIT,EMIT,EMIT,BYE,EXITT
+	dq TESTABC,DOLIT,10,EMIT,BYE,EXITT
 
 _start:
 	mov rax, rsp
