@@ -51,7 +51,6 @@ DOCON:
 
 	;; EXIT ( -- )
 	;; Terminate a colon definition.
-
 	$CODE 4,'EXIT',EXITT
 	xchg rbp, rsp
 	pop rsi
@@ -61,7 +60,6 @@ DOCON:
 
 	;; BYE ( -- )
 	;; Exit eForth.
-
 	$CODE 3,'BYE',BYE
 	mov rax, 60		; nr
 	mov rdi,  0		; exit code
@@ -70,7 +68,6 @@ DOCON:
 
 	;; ?RX (-- c T | F)
 	;; Return input character and true, or a false and no input.
-
 	$CODE 4,'?KEY',QKEY
 	mov r10, rsi		; preserve rsi
 
@@ -93,7 +90,6 @@ DOCON:
 
 	;; KEY (-- c)
 	;; Wait for and return an input character.
-
 	$CODE 3,'KEY',KEY
 	mov r10, rsi		; preserve rsi
 	mov rax, 0 		; nr
@@ -112,7 +108,6 @@ DOCON:
 
 	;; EMIT (c --)
 	;; Send character c to the output device.
-
 	$CODE 4,'EMIT',EMIT
 	pop rax
 	mov [inchr], al
@@ -132,7 +127,6 @@ DOCON:
 
 	;; EXECUTE (cfa --)
 	;; Execute the word at code field address.
-
 	$CODE 7,'EXECUTE',EXECUTE
 	pop rax
 	jmp [rax]
@@ -140,7 +134,6 @@ DOCON:
 
 	;; DOLIT (-- w)
 	;; Push an inline literal.
-
 	$CODE COMPO+5,'dolit',DOLIT
 	lodsq
 	push rax
@@ -149,7 +142,6 @@ DOCON:
 
 	;; ?BRANCH (f -- )
 	;; Branch if flag is zero.
-
 	$CODE COMPO+7,'?branch',QBRAN
 	pop rax			; pop flag
 	or rax, rax		; flag=0?
@@ -160,14 +152,12 @@ DOCON:
 
 	;; BRANCH ( -- )
 	;; Branch to an inline address
-
 	$CODE COMPO+6,'branch',BRAN
 BRAN1:	mov rsi, [rsi]		; IP=[IP]. Do the branching.
 
 
 	;; DONXT ( -- )
 	;; Run time code for the single index loop
-
 	$CODE COMPO+5,'donxt',DONXT
 	sub qword [rbp], 1	; decrement loop index on the return stack
 	jc NEXT1		; decrement below 0?
@@ -177,15 +167,33 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	add rsi, CELLL		; exit loop, increment IP to next token
 	$NEXT
 
+
+	;; ! (w a --)
+	;; Pop the data stack to the memory
+	$CODE 1,'!',STORE
+	pop rbx
+	pop qword [rbx]
+	$NEXT
+
+
+	;; @ (a -- w)
+	;; Push memory location to the data stack.
+	$CODE 1,'@',ATT
+	pop rbx
+	push qword [rbx]
+	$NEXT
+
+
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	$COLON 7,'TESTABC',TESTABC
 	dq DOLIT,99,DOLIT,98,DOLIT,97,EMIT,EMIT,EMIT,EXITT
 
+
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq TESTABC,DOLIT,10,EMIT,BYE,EXITT
+	dq TESTABC,DOLIT,10,DOLIT,mem,STORE,DOLIT,mem,ATT,EMIT,BYE,EXITT
 
 _start:
 	mov rax, rsp
@@ -202,3 +210,4 @@ _RPP:	resq 1
 inchr:	resb 1
 return_stack: resq 1024
 rs_top:
+mem:	resb 4098
