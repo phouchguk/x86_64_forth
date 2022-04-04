@@ -256,12 +256,46 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
+	;; DROP ( w -- )
+	;; Discard top stack item
+	$CODE 4,'DROP',DROP
+	pop rax			; pop it
+	$NEXT
+
+
+	;; DUP ( w -- w w )
+	;; Duplicate the top stack item
+	$CODE 3,'DUP',DUPP
+	pop rax			; pop w
+	push rax		; push w twice
+	push rax
+	$NEXT
+
+
+	;; SWAP ( w1 w2 -- w2 w1 )
+	;; Exchange top two stack items.
+	$CODE 4,'SWAP',SWAP
+	pop rbx
+	pop rax
+	push rbx
+	push rax
+	$NEXT
+
+
+	;; OVER ( w1 w2 -- w1 w2 w1 )
+	;; Copy second stack item to the top.
+	$CODE 4,'OVER',OVER
+	mov rax, [rsp + CELLL]	; get w1
+	push rax		; push w1
+	$NEXT
+
 
 
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
+	;; c b a b -> b a b c
 	$COLON 7,'TESTABC',TESTABC
-	dq DOLIT,99,DOLIT,98,DOLIT,97,EMIT,EMIT,EMIT,EXITT
+	dq DOLIT,99,DOLIT,98,DOLIT,97,OVER,EMIT,EMIT,EMIT,EMIT,EXITT
 
 
 	;; TEST ( -- )
