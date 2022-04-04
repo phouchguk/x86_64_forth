@@ -66,7 +66,7 @@ DOCON:
 	syscall
 
 
-	;; ?RX (-- c T | F)
+	;; ?KEY ( -- c T | F )
 	;; Return input character and true, or a false and no input.
 	$CODE 4,'?KEY',QKEY
 	mov r10, rsi		; preserve rsi
@@ -88,7 +88,7 @@ DOCON:
 	$NEXT
 
 
-	;; KEY (-- c)
+	;; KEY ( -- c )
 	;; Wait for and return an input character.
 	$CODE 3,'KEY',KEY
 	mov r10, rsi		; preserve rsi
@@ -106,7 +106,7 @@ DOCON:
 	$NEXT
 
 
-	;; EMIT (c --)
+	;; EMIT ( c -- )
 	;; Send character c to the output device.
 	$CODE 4,'EMIT',EMIT
 	pop rax
@@ -125,14 +125,14 @@ DOCON:
 	$NEXT
 
 
-	;; EXECUTE (cfa --)
+	;; EXECUTE ( cfa -- )
 	;; Execute the word at code field address.
 	$CODE 7,'EXECUTE',EXECUTE
 	pop rax
 	jmp [rax]
 
 
-	;; DOLIT (-- w)
+	;; dolit ( -- w )
 	;; Push an inline literal.
 	$CODE COMPO+5,'dolit',DOLIT
 	lodsq
@@ -140,7 +140,7 @@ DOCON:
 	$NEXT
 
 
-	;; ?BRANCH (f -- )
+	;; ?branch ( f -- )
 	;; Branch if flag is zero.
 	$CODE COMPO+7,'?branch',QBRAN
 	pop rax			; pop flag
@@ -150,13 +150,13 @@ DOCON:
 	$NEXT
 
 
-	;; BRANCH ( -- )
+	;; branch ( -- )
 	;; Branch to an inline address
 	$CODE COMPO+6,'branch',BRAN
 BRAN1:	mov rsi, [rsi]		; IP=[IP]. Do the branching.
 
 
-	;; DONXT ( -- )
+	;; donxt ( -- )
 	;; Run time code for the single index loop
 	$CODE COMPO+5,'donxt',DONXT
 	sub qword [rbp], 1	; decrement loop index on the return stack
@@ -168,7 +168,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
-	;; ! (w a --)
+	;; ! ( w a -- )
 	;; Pop the data stack to the memory
 	$CODE 1,'!',STORE
 	pop rbx
@@ -176,7 +176,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
-	;; @ (a -- w)
+	;; @ ( a -- w )
 	;; Push memory location to the data stack.
 	$CODE 1,'@',ATT
 	pop rbx
@@ -203,14 +203,14 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
-	;; RP@ ( -- a )
+	;; rp@ ( -- a )
 	;; Push the current RP on the data stack.
 	$CODE 3,'rp@',RPAT
 	push rbp		; push RP on stacl
 	$NEXT
 
 
-	;; RP! ( a -- )
+	;; rp! ( a -- )
 	;; Set the return stack pointer.
 	$CODE COMPO+3,'rp!',RPSTO
 	pop rbp			; pop a and store it in RP
@@ -239,6 +239,21 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	pop qword [rbp]		; pop w and store it on return stack
 	$NEXT
 
+
+	;; sp@ ( -- a )
+	;; Push the current data stack pointer.
+	$CODE 3,'sp@',SPAT
+	mov rax, rsp		; Get data stack pointer rsp
+	push rax		; Push it
+	$NEXT
+
+
+	;; sp! ( a -- )
+	;; Set the data stack pointer.
+	$CODE 3,'sp!',SPSTO
+	pop rax			; Pop a
+	mov rsp, rax		; Store it in rsp
+	$NEXT
 
 
 
