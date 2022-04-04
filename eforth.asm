@@ -203,6 +203,46 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
+	;; RP@ ( -- a )
+	;; Push the current RP on the data stack.
+	$CODE 3,'rp@',RPAT
+	push rbp		; push RP on stacl
+	$NEXT
+
+
+	;; RP! ( a -- )
+	;; Set the return stack pointer.
+	$CODE COMPO+3,'rp!',RPSTO
+	pop rbp			; pop a and store it in RP
+	$NEXT
+
+
+	;; R> ( -- w )
+	;; Pop the return stack to the data stack.
+	$CODE 2,'R>',RFROM
+	push qword [rbp]	; push top of return stack on data stack
+	add rbp, CELLL		; adjust RP
+	$NEXT
+
+
+	;; R@ ( -- w )
+	;; Copy top of return stack to the data stack.
+	$CODE 2,'R@',RAT
+	push qword [rbp]	; push top of return stack on data stack
+	$NEXT			; leave RP alone
+
+
+	;; >R ( w -- )
+	;; Push the data stack to the return stack.
+	$CODE COMPO+2,'>R',TOR
+	sub rbp, CELLL 		; adjust RP
+	pop qword [rbp]		; pop w and store it on return stack
+	$NEXT
+
+
+
+
+
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	$COLON 7,'TESTABC',TESTABC
