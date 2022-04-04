@@ -329,11 +329,23 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
+	;; UM+ ( w w -- w cy )
+	;; Add two numbers, return the sum and the carry flag
+	$CODE 3,'UM+',UPLUS
+	xor rcx, rcx		; RCX=0 initial carry flag
+	pop rbx
+	pop rax
+	add rax, rbx		; add
+	rcl rcx, 1		; get carry
+	push rax		; push sum
+	push rcx		; push carry
+	$NEXT
+
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	;; c b a b -> b a b c
 	$COLON 7,'TESTABC',TESTABC
-	dq DOLIT,99,DOLIT,98,DOLIT,97,OVER,DUPP,ZLESS,DROP,EMIT,EMIT,EMIT,EMIT,EXITT
+	dq DOLIT,99,DOLIT,98,DOLIT,97,DOLIT,10,UPLUS,DROP,OVER,DUPP,ZLESS,DROP,EMIT,EMIT,EMIT,EMIT,EXITT
 
 
 	;; TEST ( -- )
