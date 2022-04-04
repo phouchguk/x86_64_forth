@@ -275,10 +275,10 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	;; SWAP ( w1 w2 -- w2 w1 )
 	;; Exchange top two stack items.
 	$CODE 4,'SWAP',SWAP
-	pop rbx
-	pop rax
-	push rbx
-	push rax
+	pop rbx			; pop w2
+	pop rax			; pop w1
+	push rbx		; push w2
+	push rax		; push w1
 	$NEXT
 
 
@@ -290,12 +290,50 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
+	;; 0< ( n -- t )
+	;; Return true if n is negative.
+	$CODE 2,'0<',ZLESS
+	pop rax			; pop n
+	cdq			; sign extend RAX to RDX
+	push rdx		; push sign as flag
+	$NEXT
+
+
+	;; AND ( w w -- w )
+	;; Bitwise AND.
+	$CODE 3,'AND',ANDD
+	pop rax
+	pop rbx
+	and rax, rbx		; and
+	push rax
+	$NEXT
+
+
+	;; OR ( w w -- w )
+	;; Bitwise inclusive OR.
+	$CODE 2,'OR',ORR
+	pop rax
+	pop rbx
+	or rax, rbx		; or
+	push rax
+	$NEXT
+
+
+	;; XOR ( w w -- w )
+	;; Bitwise exclusive OR.
+	$CODE 3,'XOR',XORR
+	pop rax
+	pop rbx
+	xor rax, rbx		; xor
+	push rax
+	$NEXT
+
 
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	;; c b a b -> b a b c
 	$COLON 7,'TESTABC',TESTABC
-	dq DOLIT,99,DOLIT,98,DOLIT,97,OVER,EMIT,EMIT,EMIT,EMIT,EXITT
+	dq DOLIT,99,DOLIT,98,DOLIT,97,OVER,DUPP,ZLESS,DROP,EMIT,EMIT,EMIT,EMIT,EXITT
 
 
 	;; TEST ( -- )
