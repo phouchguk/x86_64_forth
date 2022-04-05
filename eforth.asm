@@ -2,6 +2,7 @@
 
 	%define CELLL 8
 	%define COMPO 040h
+	%define BASEE 10
 
 	%assign _LINK 0
 
@@ -26,7 +27,28 @@
 	jmp [rax]
 	%endmacro
 
+	section .data
+
+	_UZERO	dq 0		; start of variable area
+	_SPP	dq 0		; bottom of the data stack
+	_RPP	dq 0		; bottom of the return stack
+	_BASE	dq BASEE	; radix base for numeric i/o
+	_TMP	dq 0		; temporary storage
+	_IN	dq 0		; current character pointer to input string
+	_SPAN	dq 0		; character count received by EXPECT
+	_NTIB	dq 0		; end of input string
+	_TIBB	dq 0		; beginning of input string
+	_EVAL	dq 0		; execution vector for EVAL
+	_HLD	dq 0		; next character in numeric output string
+	_CNTXT	dq 0		; name field of the last word in the dictionary
+	_CP	dq 0		; top of the dictionary
+	_LASTN	dq 0		; initial CONTEXT
+	ULAST	dq 0		; end of variable area
+	_TIB	times 20 dq 0	; terminal input buffer
+	_CPP	times 4096 dq 0	; user dictionary
+
 	section .text
+
 	global _start
 
 DOLST:
@@ -350,6 +372,14 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$NEXT
 
 
+	;; rp0 ( -- a )
+	;; Pointer to bottom of the return stack.
+	$CODE 3,'rp0',RZERO
+	lea rax, [_RPP]		; bottom of return stack
+	push rax		; push
+	$NEXT
+
+
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	;; c b a b -> b a b c
@@ -367,15 +397,16 @@ _start:
 	mov [_SPP], rax
 	mov rbp, rs_top-CELLL
 	mov [_RPP], rbp
+	mov qword [_TIBB], _TIB
+	mov qword [_CP], _CPP
+	mov qword [_CNTXT], _LINK
+	mov qword [_LASTN], _LINK
+
 	cld
 	mov rax, TEST
 	jmp [rax]		; jump to the address in rax i.e. docol?
 
-	section .data
-
 	section .bss
-_SPP:	resq 1
-_RPP:	resq 1
 inchr:	resb 1
 return_stack: resq 128
 rs_top:
