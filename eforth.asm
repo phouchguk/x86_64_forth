@@ -341,6 +341,15 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	push rcx		; push carry
 	$NEXT
 
+
+	;; sp0 ( -- a )
+	;; Pointer to bottom of the data stack.
+	$CODE 3,'sp0',SZERO
+	lea rax, [_SPP]		; bottom of data stack
+	push rax		; push
+	$NEXT
+
+
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	;; c b a b -> b a b c
@@ -362,10 +371,12 @@ _start:
 	mov rax, TEST
 	jmp [rax]		; jump to the address in rax i.e. docol?
 
+	section .data
+
 	section .bss
 _SPP:	resq 1
 _RPP:	resq 1
 inchr:	resb 1
-return_stack: resq 1024
+return_stack: resq 128
 rs_top:
 mem:	resb 4098
