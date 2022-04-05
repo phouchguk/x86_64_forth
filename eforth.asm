@@ -173,13 +173,13 @@ DOCON:
 
 
 	;; branch ( -- )
-	;; Branch to an inline address
+	;; Branch to an inline address.
 	$CODE COMPO+6,'branch',BRAN
 BRAN1:	mov rsi, [rsi]		; IP=[IP]. Do the branching.
 
 
 	;; donxt ( -- )
-	;; Run time code for the single index loop
+	;; Run time code for the single index loop.
 	$CODE COMPO+5,'donxt',DONXT
 	sub qword [rbp], 1	; decrement loop index on the return stack
 	jc NEXT1		; decrement below 0?
@@ -191,7 +191,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 
 
 	;; ! ( w a -- )
-	;; Pop the data stack to the memory
+	;; Pop the data stack to the memory.
 	$CODE 1,'!',STORE
 	pop rbx
 	pop qword [rbx]
@@ -279,14 +279,14 @@ NEXT1:	add rbp, CELLL		; pop loop index
 
 
 	;; DROP ( w -- )
-	;; Discard top stack item
+	;; Discard top stack item.
 	$CODE 4,'DROP',DROP
 	pop rax			; pop it
 	$NEXT
 
 
 	;; DUP ( w -- w w )
-	;; Duplicate the top stack item
+	;; Duplicate the top stack item.
 	$CODE 3,'DUP',DUPP
 	pop rax			; pop w
 	push rax		; push w twice
@@ -352,7 +352,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 
 
 	;; UM+ ( w w -- w cy )
-	;; Add two numbers, return the sum and the carry flag
+	;; Add two numbers, return the sum and the carry flag.
 	$CODE 3,'UM+',UPLUS
 	xor rcx, rcx		; RCX=0 initial carry flag
 	pop rbx
@@ -379,6 +379,83 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	push rax		; push
 	$NEXT
 
+
+	;; base ( -- a )
+	;; Storage of the radix base for numeric i/o.
+	$CODE 4,'base',BASE
+	lea rax, [_BASE]	; Radix for number conversion
+	push rax
+	$NEXT
+
+
+	;; tmp ( -- a )
+	;; Temporary storage location used in PARSE and FIND.
+	$CODE COMPO+3,'tmp',TEMP
+	lea rax, [_TMP]		; Temporary storage
+	push rax
+	$NEXT
+
+
+	;; span ( -- a )
+	;; Hold character count received by EXPECT.
+	$CODE 4,'span',SPAN
+	lea rax, [_SPAN]	; Character count received
+	push rax
+	$NEXT
+
+
+	;; in ( -- a )
+	;; Character pointer while parsing input stream.
+	$CODE 3,'>in',INN
+	lea rax, [_IN]		; Parser pointer
+	push rax
+	$NEXT
+
+
+	;; #tib ( -- a )
+	;; Hold the current count for the terminal input buffer.
+	$CODE 4,'#tib',NTIB
+	lea rax, [_NTIB]	; Pointer to end of input buffer
+	push rax
+	$NEXT
+
+
+	;; hld ( -- a )
+	;; Pointer to numeric output string under construction.
+	$CODE 3,'hld',HLD
+	lea rax, [_HLD]		; Pointer to output number string
+	push rax
+	$NEXT
+
+
+	;; eval ( -- a )
+	;; Hold $INTERPRET or $COMPILE
+	$CODE 4,'eval',TEVAL
+	lea rax, [_EVAL]	; Execution vector for text interpreter
+	push rax
+	$NEXT
+
+
+	;; context ( -- a )
+	;; Pointer to last name in dictionary
+	$CODE 7,'context',CNTXT
+	lea rax, [_CNTXT]	; Pointer to last name
+	push rax
+	$NEXT
+
+	;; cp ( -- a )
+	;; Pointer to the top of the code dictionary.
+	$CODE 2,'cp',CP
+	lea rax, [_CP]		; Pointer to top of dictionary
+	push rax
+	$NEXT
+
+	;; last ( -- a )
+	;; Pointer to the last name in the dictionary.
+	$CODE 4,'last',LAST
+	lea rax, [_LASTN]	; Initial value for CONTEXT
+	push rax
+	$NEXT
 
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
