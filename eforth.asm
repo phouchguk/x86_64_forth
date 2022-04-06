@@ -152,6 +152,7 @@ DOCON:
 	$CODE 7,'EXECUTE',EXECUTE
 	pop rax
 	jmp [rax]
+	;; no $NEXT because jumping
 
 
 	;; dolit ( -- w )
@@ -167,7 +168,7 @@ DOCON:
 	$CODE COMPO+7,'?branch',QBRAN
 	pop rax			; pop flag
 	or rax, rax		; flag=0?
-	jz BRAN1		; yes, do branch
+	jz short BRAN1		; yes, do branch
 	add rsi, CELLL		; point IP to next token
 	$NEXT
 
@@ -176,6 +177,7 @@ DOCON:
 	;; Branch to an inline address.
 	$CODE COMPO+6,'branch',BRAN
 BRAN1:	mov rsi, [rsi]		; IP=[IP]. Do the branching.
+	$NEXT
 
 
 	;; donxt ( -- )
@@ -584,16 +586,287 @@ ABS1:	push rax
 	$NEXT
 
 
+	;; More comparison words
+
+	;; = ( w w -- t )
+	;; Return true if top two are equal.
+	$CODE 1,'=',EQUAL
+	xor rax, rax		; init a false flag
+	pop rdx
+	pop rbx
+	xor rdx, rbx		; compare
+	jnz EQU1
+	dec rax			; change false flag to true flag
+EQU1:	push rax
+	$NEXT
+
+
+	;; U< ( u u -- t )
+	;; Unsigned compare of top two items.
+	$CODE 2,'U<',ULESS
+	pop rbx
+	pop rax
+	sub rax, rdx		; compare
+	sbb rax, rax		; use carry to generate true or false flag
+	push rax
+	$NEXT
+
+
+	;; < ( n1 n2 -- t )
+	;; Signed compare of top two items.
+	$CODE 1,'<',LESS
+	xor rax, rax		; init false flag
+	pop rbx
+	pop rcx
+	sub rcx, rbx		; compare
+	jge LESS1
+	dec rax			; make true flag
+LESS1:	push rax
+	$NEXT
+
+
+	;; MAX ( n n -- n )
+	;; Return the greater of top two stack items.
+	$CODE 3,'MAX',MAX
+	pop rbx
+	pop rax
+	cmp rax, rbx		; compare
+	jge MAX1		; select larger
+	xchg rax, rbx
+MAX1:	push rax
+	$NEXT
+
+
+	;; MIN ( n n -- n )
+	;; Return the smaller of top two stack items.
+	$CODE 3,'MIN',MIN
+	pop rbx
+	pop rax
+	cmp rax, rbx		; compare
+	jge MIN1		; select smaller
+	xchg rax, rbx
+MIN1:	push rbx
+	$NEXT
+
+
+	;; WITHIN (u ul uh -- t )
+	;; Return true if u is within range of ul and uh.
+	$COLON 6,'WITHIN',WITHI
+	dq OVER,SUBBB,TOR	; range between ul and uh
+	dq SUBBB,RFROM,ULESS	; range between ul and uh
+	dq EXITT
+
+
+	;; Multiply and divide
+
+	;; UM/MOD ( udl udh un -- ur uq )
+	;; Unsigned divide of a double by a single. Return mod and quotient.
+	$CODE 6,'UM/MOD',UMMOD
+	pop rbx			; un
+	pop rdx			; udh
+	pop rax			; udl
+	or rbx, rbx		; if un=0
+	jnz UMM1
+UMM:	mov rax, -1		; return two -1's
+	push rax
+	push rax
+	$NEXT
+UMM1:	div rbx			; else unsigned divide
+	push rdx		; remainder
+	push rax		; quotient
+	$NEXT
+
+
+	;; M/MOD ( d n -- r q )
+	;; Signed floored divide of double by single. Return mod and quotient.
+	$CODE 5,'M/MOD',MSMOD
+	pop rbx			; n
+	pop rdx			; dh
+	pop rax			; dl
+	or rbx, rbx		; if n=0
+	jz UMM
+MSM1:	div rbx			; signed divide
+	push rdx		; remainder
+	push rax		; quotient
+	$NEXT
+
+
+	;; /MOD ( n1 n2 -- r q )
+	;; Signed divide. Return mod and quotient.
+	$COLON 4,'/MOD',SLMOD
+	dq OVER,ZLESS,SWAP	; sign extend n1
+	dq MSMOD		; floored divide
+	dq EXITT
+
+	;; MOD ( n n -- r )
+	;; Signed divide. Return mod only.
+	$COLON 3,'MOD',MODD
+	dq SLMOD,DROP		; divide and discard remainder
+	dq EXITT
+
+	;; / ( n n -- q )
+	;; Signed divide. Return quotient only.
+	$COLON 1,'/',SLASH
+	dq SLMOD,SWAP,DROP	; divide and discard quotient
+	dq EXITT
+
+
+	;; UM* ( u u -- ud )
+	;; Unsigned multiply. Return double product.
+	$CODE 3,'UM*',UMSTA
+	pop rax
+	pop rbx
+	mul rbx			; unsigned multiply
+	push rax
+	push rdx
+	$NEXT
+
+
+	;; M* ( n n -- d )
+	;; Signed multiply. Return double product.
+	$CODE 2,'M*',MSTAR
+	pop rbx
+	pop rax
+	imul rbx		; signed multiply
+	push rax
+	push rdx
+	$NEXT
+
+
+	;; * ( n n -- n )
+	;; Signed multiply. Return single product.
+	$CODE 1,'*',STAR
+	pop rax
+	pop rbx
+	imul rbx		; signed multiply
+	push rax
+	$NEXT
+
+
+	;; Scaling
+
+	;; */MOD ( n1 n2 n3 -- r q )
+	;; Multiply n1 and n2. then divide by n3. Return mod and quotient.
+	$COLON 5,'*/MOD',SSMOD
+	dq TOR,MSTAR		; n1*n2
+	dq RFROM,MSMOD		; (n1*n2)/n3 with remainder
+	dq EXITT
+
+
+	;; */ ( n1 n2 n3 -- q )
+	;; Multiply n1 by n2, then divide by n3. Return quotient only.
+	$COLON 2,'*/',STASL
+	dq SSMOD,SWAP		; (n1*n2)/n3
+	dq DROP			; discard remainder
+	dq EXITT
+
+	;; Memory alignment words
+
+	;; 8+ ( a -- a+8 )
+	;; Add cell size in bytes to address.
+	$CODE 2,'8+',CELLP
+	pop rax
+	add rax, CELLL		; plus 8
+	push rax
+	$NEXT
+
+
+	;; 8- ( a -- a-8 )
+	;; Subtract cell size in bytes from address.
+	$CODE 2,'8-',CELLM
+	pop rax
+	sub rax, CELLL		; minus 8
+	push rax
+	$NEXT
+
+
+	;; 8* ( n -- n*8 )
+	;; Multiply tos by cell size in bytes.
+	$CODE 2,'8*',CELLS
+	pop rax
+	shl rax, 3		; shift left 3 bits
+	push rax
+	$NEXT
+
+
+	;; 1+ ( a -- a+1 )
+	;; Add one to address.
+	$CODE 2,'1+',ONEP
+	pop rax
+	add rax, 1		; increment
+	push rax
+	$NEXT
+
+
+	;; 1- ( a -- a-1 )
+	;; Subtract one from address.
+	$CODE 2,'1-',ONEM
+	pop rax
+	sub rax, 1
+	push rax
+	$NEXT
+
+
+	;; 2+ ( a -- a+2 )
+	;; Add two to address.
+	$CODE 2,'1+',TWOP
+	pop rax
+	add rax, 2		; increment
+	push rax
+	$NEXT
+
+
+	;; 2- ( a -- a-2 )
+	;; Subtract two from address.
+	$CODE 2,'2-',TWOM
+	pop rax
+	sub rax, 2
+	push rax
+	$NEXT
+
+
+	;; Special characters
+
+	;; BL ( -- 32 )
+	;; Return 32, the blank character.
+	$COLON 2,'BL',BLANK
+	dq DOLIT,' '		; blank
+	dq EXITT
+
+	;; >CHAR ( c -- c )
+	;; Filter non-printing characters.
+	$COLON 5,'>CHAR',TCHAR
+	dq DOLIT,07FH,ANDD,DUPP		; mask msb
+	dq DOLIT,127,BLANK,WITHI	; check for printable
+	dq QBRAN,TCHA1
+	dq DROP,DOLIT,'_'		; replace non-printable
+TCHA1:
+	dq EXITT
+
+
 	;; TEST COLON CALLS ( -- )
 	;; Test colon calls.
 	$COLON 7,'TESTABC',TESTABC
-	dq DOLIT,100,DOLIT,197,SUBBB,ABSS,DOLIT,98,DOLIT,97,DOLIT,10,UPLUS,DROP,OVER,QDUP,ZLESS,DROP,EMIT,EMIT,EMIT,EMIT,EXITT
+	dq DOLIT,100,DOLIT,197,SUBBB,ABSS ; ABS(100 - 197)
+	dq DOLIT,4,STAR,DOLIT,4,SLASH	  ; * 4 / 4
+	dq DUPP,DUPP,EQUAL,DROP		  ; test equal
+	dq DOLIT,98,DOLIT,97,DOLIT,10,UPLUS,DROP,OVER,QDUP,ZLESS,DROP,EMIT,BLANK,EMIT,EMIT,
+	dq EMIT,EMIT
+	dq EXITT
+
+
+	$COLON 3,'ABC',ABC
+	dq DOLIT,99,DOLIT,1,DOLIT,97
+	dq TCHAR,EMIT,TCHAR,EMIT,TCHAR,EMIT
+	dq EXITT
 
 
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq TESTABC,DOLIT,10,DOLIT,mem,CSTOR,DOLIT,mem,CAT,EMIT,BYE,EXITT
+	dq ABC,DOLIT,10,DOLIT,mem,CSTOR,DOLIT,mem,CAT,EMIT,BYE
+	dq EXITT
+
 
 _start:
 	mov rax, rsp
