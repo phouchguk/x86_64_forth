@@ -1046,8 +1046,76 @@ SIGN1:	dq EXITT
 	;; str ( w -- b u )
 	;; Convert a signed integer to a numeric string.
 	$COLON 3,'str',STRR
-	dq DUPP,TOR,ABSS	; save w for SIGN, and change w to absolute.
+	dq DUPP,TOR,ABSS	; save w for SIGN, and change w to absolute
+	dq BDIGS,DIGS,RFROM	; extract all digits of absolute value
+	dq SIGN,EDIGS		; append sign and return buffer and length
+	dq EXITT
 
+
+	;; .R ( w +n -- )
+	;; Display an integer in a field of n columns, right justified.
+	$COLON 2,'.R',DOTR
+	dq TOR,STRR,RFROM	; save column width +n and convert w
+	dq OVER,SUBBB,SPACS	; display spaces for right justification
+	dq TYPES		; display number string
+	dq EXITT
+
+
+	;; U.R ( w +n -- )
+	;; Display an unsigned integer in n column, right justified.
+	$COLON 3,'U.R',UDOTR
+	dq TOR,BDIGS,DIGS,EDIGS		; convert unsigned integer w
+	dq RFROM,OVER,SUBBB,SPACS 	; add spaces for right justification
+	dq TYPES			; display string number
+	dq EXITT
+
+
+	;; U. ( u -- )
+	;; Display an unsigned integer in free format.
+	$COLON 2,'U.',UDOT
+	dq BDIGS,DIGS,EDIGS	; convert unsigned integer w
+	dq SPACE,TYPES		; add space and display number string
+	dq EXITT
+
+
+	;; . ( w -- )
+	;; Display an integer in free format, followed by a space.
+	$COLON 1,'.',DOT
+	dq BASE,ATT,DOLIT,10,XORR	; decimal?
+	dq QBRAN,DOT1
+	dq UDOT,EXITT		; No, display unsigned number
+DOT1:	dq STRR,SPACE,TYPES	; Yes, display signed number
+	dq EXITT
+
+
+	;; ? ( a -- )
+	;; Display the contents in a memory cell.
+	$COLON 1,'?',QUEST
+	dq ATT,DOT
+	dq EXITT
+
+
+	;; HEX ( -- )
+	;; Use radix 16 as base for numeric conversions.
+	$COLON 3,'HEX',HEX
+	dq DOLIT,16,BASE,STORE
+	dq EXITT
+
+
+	;; DECIMAL ( -- )
+	;; Use radix 10 as base for numeric conversions.
+	$COLON 7,'DECIMAL',DECIMAL
+	dq DOLIT,10,BASE,STORE
+	dq EXITT
+
+
+	;; Numeric input
+
+
+
+SPACE:
+SPACS:
+TYPES:
 
 	;; TEST ( -- )
 	;; My test code.
