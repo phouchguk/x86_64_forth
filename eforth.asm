@@ -606,7 +606,7 @@ EQU1:	push rax
 	$CODE 2,'U<',ULESS
 	pop rbx
 	pop rax
-	sub rax, rdx		; compare
+	sub rax, rbx		; compare
 	sbb rax, rax		; use carry to generate true or false flag
 	push rax
 	$NEXT
@@ -844,28 +844,11 @@ TCHA1:
 	dq EXITT
 
 
-	;; TEST COLON CALLS ( -- )
-	;; Test colon calls.
-	$COLON 7,'TESTABC',TESTABC
-	dq DOLIT,100,DOLIT,197,SUBBB,ABSS ; ABS(100 - 197)
-	dq DOLIT,4,STAR,DOLIT,4,SLASH	  ; * 4 / 4
-	dq DUPP,DUPP,EQUAL,DROP		  ; test equal
-	dq DOLIT,98,DOLIT,97,DOLIT,10,UPLUS,DROP,OVER,QDUP,ZLESS,DROP,EMIT,BLANK,EMIT,EMIT,
-	dq EMIT,EMIT
-	dq EXITT
-
-
-	$COLON 3,'ABC',ABC
-	dq DOLIT,99,DOLIT,1,DOLIT,97
-	dq TCHAR,EMIT,TCHAR,EMIT,TCHAR,EMIT
-	dq EXITT
-
-
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq ABC,DOLIT,10,DOLIT,mem,CSTOR,DOLIT,mem,CAT,EMIT,BYE
-	dq EXITT
+	dq DOLIT,10,DOLIT,-1,QBRAN,TEST1,DOLIT,'z',EMIT
+TEST1:	dq DOLIT,01AH,TCHAR,EMIT,EMIT,BYE
 
 
 _start:
