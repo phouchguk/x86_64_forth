@@ -1111,6 +1111,54 @@ DOT1:	dq STRR,SPACE,TYPES	; Yes, display signed number
 
 	;; Numeric input
 
+	;; digit? ( c base -- u t )
+	;; Convert a character to its numeric value. A flag indicates success.
+	$COLON 6,'digit?',DIGTQ
+	dq TOR,DOLIT,'0',SUBBB	; save radix, convert ASCII to digit
+	dq DOLIT,9,OVER,LESS	; is digit greater than 9?
+	dq QBRAN,DGTQ1
+	dq DOLIT,7,SUBBB	; Yes, convert hex to decimal digit
+	dq DUPP,DOLIT,10,LESS,ORR	; if digit<10, change it to -1
+DGTQ1:	dq DUPP,RFROM,ULESS	 	; if digit>=base, return a false flag
+	dq EXITT
+
+
+	;; number? ( a -- n T | a F )
+	;; Convert a number string to integer. Push a flag on tos.
+	$COLON 7,'number?',NUMBQ
+	dq BASE,ATT,TOR		; save the current radix in BASE
+	dq DOLIT,0,OVER,COUNT	; a 0 a+1 n --, get length of the string
+	dq OVER,CAT		; get first digit
+	dq DOLIT,'$',EQUAL	; is it a '$' for hexadecimal base?
+	dq QBRAN,NUMQ1
+	dq HEX,SWAP,ONEP	; Yes, use hexadecimal base and adjust string
+	dq SWAP,ONEM		; a 0 a+2 n-1 --
+NUMQ1:	dq OVER,CAT		; get next digit
+	dq DOLIT,'-',EQUAL,TOR	; is it a '-' sign? Save flag.
+	dq SWAP,RAT,SUBBB,SWAP	; a 0 b' n' --, adjust address b
+	dq RAT,PLUS,QDUP	; a 0 b" n" n" --, add just count n"
+	dq QBRAN,NUMQ6
+	dq ONEM,TOR		; valid count, convert string
+NUMQ2:	dq DUPP,TOR,CAT		; save address b and get next digit
+	dq BASE,ATT,DIGTQ	; convert it according to current radix
+	dq QBRAN,NUMQ4		; if it is a valid digit
+	dq SWAP,BASE,ATT,STAR	; mutiply it by radix
+	dq PLUS,RFROM,ONEP	; add to sum. increment address b.
+	dq DONXT,NUMQ2		; loop back to convert next digit
+	dq RAT,SWAP,DROP	; completely convert the string. get sign.
+	dq QBRAN,NUMQ3
+	dq NEGAT		; negate the sum if flag is true
+NUMQ3:	dq SWAP			; sum a --
+	dq BRAN,NUMQ5
+NUMQ4:	dq RFROM,RFROM,DDROP	; if a non-digit was encountered
+	dq DDROP,DOLIT,0	; a 0 --, conversion failed
+NUMQ5:	dq DUPP			; sum a a -- if success, else a 0 0
+NUMQ6:	dq RFROM,DDROP		; discard garbage
+	dq RFROM,BASE,STORE	; restore BASE
+	dq EXITT
+
+
+	;; Derived I/O words
 
 
 SPACE:
