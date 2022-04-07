@@ -149,7 +149,7 @@ DOCON:
 
 	;; EXECUTE ( cfa -- )
 	;; Execute the word at code field address.
-	$CODE 7,'EXECUTE',EXECUTE
+	$CODE 7,'EXECUTE',EXECU
 	pop rax
 	jmp [rax]
 	;; no $NEXT because jumping
@@ -842,6 +842,211 @@ MSM1:	div rbx			; signed divide
 	dq DROP,DOLIT,'_'		; replace non-printable
 TCHA1:
 	dq EXITT
+
+
+	;; Managing data stack
+
+	;; depth ( -- n )
+	;; Return the depth of the data stack.
+	$COLON 5,'depth',DEPTCH
+	dq SPAT,DOLIT,_SPP,ATT	; top and bottom of data stack
+	dq SWAP,SUBBB
+	dq DOLIT,CELLL,SLASH	; divide by 8
+	dq EXITT
+
+
+	;; PICK ( .. +n -- .. w )
+	;; Copy the nth stack item to tos.
+	$COLON 4,'PICK',PICK
+	dq ONEP,CELLS		; 0 based
+	dq SPAT,PLUS,ATT,EXITT	; reach into the data stack
+
+
+	;; Memory access
+
+	;; +! ( n a -- )
+	;; Add n to the contents at address a.
+	$CODE 2,'+!',PSTOR
+	pop rbx			; a
+	pop rax			; n
+	add [rbx], rax		; and n to [a]
+	$NEXT
+
+
+	;; 2! ( d a -- )
+	;; Store the double integer to address a.
+	$CODE 2,'2!',DSTOR
+	pop rbx
+	pop qword [rbx]		; dl
+	pop qword [rbx+CELLL]	; dh
+	$NEXT
+
+
+	;; 2@ ( a -- d )
+	;; Fetch double integer from address a.
+	$CODE 2,'2@',DAT
+	pop rbx
+	push qword [rbx+CELLL]	; dh
+	push qword [rbx]	; dl
+	$NEXT
+
+
+	;; HERE ( -- a )
+	;; Return the top of the code dictionary
+	$COLON 4,'HERE',HERE
+	dq CP,ATT,EXITT		; [cp]
+
+
+	;; PAD ( -- a )
+	;; Return the address of the text buffer above the code dictionary.
+	$COLON 3,'PAD',PAD
+	dq HERE,DOLIT,80	; [cp+80]
+	dq PLUS,EXITT
+
+
+	;; TIB ( -- a )
+	;; Return the address of the terminal input buffer.
+	$COLON 3,'TIB',TIB
+	dq DOLIT,_TIB,EXITT
+
+
+	;; @EXECUTE ( a -- )
+	;; Execute vector store in address a.
+	$COLON 8,'@EXECUTE',ATEXE
+	dq ATT,QDUP		; address or zero?
+	dq QBRAN,EXE1
+	dq EXECU		; execute if non-zero
+EXE1:	dq EXITT		; do nothing if zero
+
+
+	;; Array and string words
+
+	;; COUNT ( b -- b+1 c )
+	;; Return count byte of a string and add one to the byte address.
+	$CODE 5,'COUNT',COUNT
+	pop rbx			; get b
+	xor rax, rax		; clear rax to receive one byte
+	mov al, [rbx]		; get c
+	inc rbx			; increment b
+	push rbx		; push b+1
+	push rax		; push c
+	$NEXT
+
+
+	;; CMOVE ( b1 b2 u -- )
+	;; Copy u bytes from b1 to b2
+	$CODE 5,'CMOVE',CMOVEE
+	mov rbx, rsi		; save IP
+	pop rcx			; get count
+	pop rdi
+	pop rsi
+	rep movsb		; repeat move bytes
+	mov rsi, rbx		; restore IP
+	$NEXT
+
+
+	;; FILL ( b u c -- )
+	;; Fill u bytes of character c to area beginning at b.
+	$COLON 4,'FILL',FILL
+	pop rax			; get byte pattern c
+	pop rcx			; get count u
+	pop rdi			; get address b
+	rep stosb		; repeat store bytes
+	$NEXT
+
+
+	;; ERASE ( b u -- )
+	;; Erase u bytes beginning at b.
+	dq DOLIT,0,FILL		; just fill with zero
+	dq EXITT
+
+
+	;; PACK$ ( b u a -- a )
+	;; Build a counted string at a from string with u characters at b.
+	$COLON 5,'PACK$',PACKS
+	dq DUPP,TOR		; save count
+	dq DDUP,CSTOR,ONEP	; store count
+	dq SWAP,CMOVEE,RFROM	; move string
+	dq EXITT
+
+
+	;; Chapter 8 - Text Interpreter
+
+	;; digit ( u -- c )
+	;; Convert digit to a character.
+	$COLON 5,'digit',DIGIT
+	dq DOLIT,9,OVER,LESS	; if u>9
+	dq DOLIT,7,ANDD,PLUS	; add 7 for a hex number
+	dq DOLIT,'0',PLUS	; convert to ASCII
+	dq EXITT
+
+
+	;; extract ( n base -- n c )
+	;; Extract the least significant digit from n.
+	$COLON 7,'extract',EXTRC
+	dq DOLIT,0,SWAP,UMMOD	; extract least significant digit
+	dq SWAP,DIGIT		; convert to ascii digit
+	dq EXITT
+
+
+	;; Number formatting
+
+	;; <# ( -- )
+	;; Initiate the numeric output process.
+	$COLON 2,'<#',BDIGS	; BeginDIGitString
+	dq PAD,HLD,STORE	; point HLD to PAD to accept numeric digits
+	dq EXITT
+
+
+	;; HOLD ( c -- )
+	;; Insert a character into the numeric output string.
+	$COLON 4,'HOLD',HOLD
+	dq HLD,ATT,ONEM		; decrement HLD
+	dq DUPP,HLD,STORE	; digits are stored in reverse order
+	dq CSTOR		; store digit c
+	dq EXITT
+
+
+	;; # ( u -- u )
+	;; Extract one digit from u and append the digit to the output string.
+	$COLON 1,'#',DIG
+	dq BASE,ATT,EXTRC	; extract least significant digit
+	dq HOLD			; append it to numeric output string
+	dq EXITT
+
+
+	;; #S ( u -- 0 )
+	;; Convert u until all digits are added to the output string.
+	$COLON 2,'#S',DIGS
+DIGS1:	dq DIG,DUPP		; append one digit
+	dq QBRAN,DIGS2		; if u is not 0
+	dq BRAN,DIGS1		; repeat until u is reduced to 0
+DIGS2:	dq EXITT
+
+
+	;; SIGN ( n -- )
+	;; Add a minus sign to the numeric output string.
+	$COLON 4,'SIGN',SIGN
+	dq ZLESS		; if n<0
+	dq QBRAN,SIGN1
+	dq DOLIT,'-',HOLD	; append minus sign
+SIGN1:	dq EXITT
+
+
+	;; #> ( w -- b u )
+	;; Prepare the output string to be TYPEed.
+	$COLON 2,'#>',EDIGS
+	dq DROP,HLD,ATT		; replace w with HLD
+	dq PAD,OVER,SUBBB	; return length of string
+	dq EXITT
+
+
+	;; Number output
+
+	;; str ( w -- b u )
+	;; Convert a signed integer to a numeric string.
+	$COLON 3,'str',STRR
+	dq DUPP,TOR,ABSS	; save w for SIGN, and change w to absolute.
 
 
 	;; TEST ( -- )
