@@ -3,6 +3,8 @@
 	%define CELLL 8
 	%define COMPO 040h
 	%define BASEE 10
+	%define LF 10
+	%define CRR 13
 
 	%assign _LINK 0
 
@@ -1160,10 +1162,52 @@ NUMQ6:	dq RFROM,DDROP		; discard garbage
 
 	;; Derived I/O words
 
+	;; nuf? ( -- t )
+	;; Return false if no input, else pause and if CR return true.
+	$COLON 4,'nuf?',NUFQ
+	dq QKEY,DUPP		; got a key?
+	dq QBRAN,NUFQ1		; No, return a false flag
+	dq DDROP,KEY		; Yes. Get key.
+	dq DOLIT,CRR,EQUAL	; Is it a CR? Return a flag.
+NUFQ1:	dq EXITT
 
-SPACE:
-SPACS:
-TYPES:
+
+	;; SPACE ( -- )
+	;; Send the blank character to the output device.
+	$COLON 5,'SPACE',SPACE
+	dq BLANK,EMIT		; send space
+	dq EXITT
+
+
+	;; SPACES ( +n -- )
+	;; Send n spaces to the output device.
+	$COLON 6,'SPACES',SPACS
+	dq DOLIT,0,MAX,TOR	; avoid negative numbers
+	dq BRAN,CHAR2
+CHAR1:	dq SPACE		; send one space
+CHAR2:	dq DONXT,CHAR1		; loop back
+	dq EXITT
+
+
+	;; TYPE ( b u -- )
+	;; Output u characters from b.
+	$COLON 4,'TYPE',TYPES
+	dq TOR
+	dq BRAN,TYPE2		; skip one loop
+TYPE1:	dq DUPP,CAT,TCHAR,EMIT	; emit only printable characters
+	dq ONEP			; b+1
+TYPE2:	dq DONXT,TYPE1
+	dq DROP			; discard b
+	dq EXITT
+
+
+	;; CR ( -- )
+	;; Output a carriage return and a line feed.
+	$COLON 2,'CR',CR
+	dq DOLIT,CRR,EMIT	; CR
+	dq DOLIT,LF,EMIT	; LF
+	dq EXITT
+
 
 	;; TEST ( -- )
 	;; My test code.
