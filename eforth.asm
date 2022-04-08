@@ -1237,6 +1237,57 @@ TYPE2:	dq DONXT,TYPE1
 
 	;; Parsing
 
+	;; (parse) ( b u c -- b u delta ; <string )
+	;; Scan string delimited by c. Return found string an its offset.
+	$COLON 7,'(parse)',PARS
+	dq TEMP,STORE,OVER	; b u b --, save c
+	dq TOR,DUPP		; b u u --, save b test u
+	dq QBRAN,PARS8		; if u=0, exit
+	dq ONEM,TEMP,ATT	; u not 0, c=blank?
+	dq BLANK,EQUAL
+	dq QBRAN,PARS3		; u not blank, go forward
+	dq TOR			; loop u times to skip blanks
+PARS1:	dq BLANK,OVER,CAT	; skip leading blanks
+	dq SUBBB,ZLESS,INVER
+	dq QBRAN,PARS2		; found non-blank character, go parsing
+	dq ONEP
+	dq DONXT,PARS1		; b+1 --, end of loop
+	dq RFROM,DROP		; string is blank exit
+	dq DOLIT,0,DUPP,EXITT	; b 0 0 --
+PARS2:	dq RFROM		; found non-blank character, parse
+PARS3:	dq OVER,SWAP		; b b u --, start parsing non-space characters
+	dq TOR			; loop u times to parse a string
+PARS4:	dq TEMP,ATT,OVER
+	dq CAT,SUBBB		; scan for delimiter
+	dq TEMP,ATT,BLANK,EQUAL
+	dq QBRAN,PARS5		; c is not blank
+	dq ZLESS
+PARS5:	dq QBRAN,PARS6		; c is blank, exit this loop
+	dq ONEP			; b+1 --
+	dq DONXT,PARS4		; loop back to test next character
+	dq DUPP,TOR		; save a copy of b at the end of the loop
+	dq BRAN,PARS7		; found a valid string
+PARS6:	dq RFROM,DROP,DUPP	; discard loop count
+	dq ONEP,TOR		; save a copy of b+1
+PARS7:	dq OVER,SUBBB		; length of the parsed string
+	dq RFROM,RFROM,SUBBB	; and its offset in the buffer
+	dq EXITT		; b u 0 --
+PARS8:	dq OVER,RFROM,SUBBB	; b u delta --
+	dq EXITT
+
+
+	;; PARSE ( c -- b u ; <string> )
+	;; Scan input stream and return counted string delimited by c.
+	$COLON 5,'parse',PARSE
+	dq TOR,TIB,INN,ATT,PLUS	; current input buffer pointer to start parsing
+	dq NTIB,ATT,INN,SUBBB	; length of remaining string in TIB
+	dq RFROM,PARS		; parse desired string
+	dq INN,PSTOR		; move pointer to end of string
+	dq EXITT
+
+
+	;; Parsing Words
+
 
 	$COLON 2,'#L',DIGL
 	dq DOLIT,20,DOTR,DOLIT,LF,EMIT,EXITT
