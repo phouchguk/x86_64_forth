@@ -3,6 +3,7 @@
 	%define CELLL 8
 	%define COMPO 040h
 	%define IMEDD 080h
+	%define MASKK 0ff1fh
 	%define BASEE 10
 	%define LF 10
 	%define CRR 13
@@ -1325,6 +1326,64 @@ PARS8:	dq OVER,RFROM,SUBBB	; b u delta --
 	dq BLANK,WORDD		; parse next string delimited by spaces
 	dq EXITT		; pack parsed string to HERE buffer
 
+
+	;; Dictionary Search
+
+	;; name> ( nfa -- cfa )
+	;; Return a code address given a name address.
+	$COLON 5,'name>',NAMET
+	dq COUNT,DOLIT,31,ANDD	; mask lexicon byte to get length
+	dq PLUS			; skip over name field
+	dq EXITT
+
+
+	;; same? ( a1 a2 u -- a1 a2 f \ -0+ )
+	;; Compare u-2 bytes in two strings. Return 0 if identical.
+	$COLON 5,'same?',SAMEQ
+	dq ONEM,TOR		; compare n-1 bytes
+	dq BRAN,SAME2		; skip the first round
+SAME1:	dq OVER,RAT,PLUS,CAT	; get source byte
+	dq OVER,RAT,PLUS,CAT	; get target byte
+	dq SUBBB,QDUP		; compare
+	dq QBRAN,SAME2		; same?
+	dq RFROM,DROP,EXITT	; not same, f<>0
+SAME2:	dq DONXT,SAME1		; same, loop for next byte
+	dq DOLIT,0		; same, f=0
+	dq EXITT
+
+
+	;; find ( a va -- cfa nfa | a F )
+	;; Search a dictionary for a string. Return cfa and nfa if succeeded.
+	$COLON 4,'find',FIND
+	dq SWAP,DUPP,CAT		; va a count --
+	dq TEMP,STORE		       	; count saved in tmp
+	dq DUPP,ATT,TOR
+	dq TWOP,SWAP			; a+2 va --, first 4 bytes saved on RS
+FIND1:	dq ATT,DUPP		        ; a+2 nfa nfa --, end of dictionary?
+	dq QBRAN,FIND6		      	; end, return a 0
+	dq DUPP,TWOP,SWAP	       	; a+2 nfa+2 nfa --
+	dq ATT,RAT,XORR
+	dq DOLIT,MASKK,ANDD		; a+2 nfa+2 f --, compare first 2 bytes
+	dq QBRAN,FIND2		  	; 2 bytes same, do SAME?
+	dq DOLIT,-1		    	; a+2 nfa+2 -1 --, not same, repeat
+	dq BRAN,FIND3
+FIND2:	dq TEMP,ATT,SAMEQ		; a+2 nfa+2 f --, compare rest of name
+FIND3:	dq QBRAN,FIND5		  	; a+2 nfa+2 --
+	dq CELLM,TWOM		  	; a+2 lfa --, not this name
+	dq BRAN,FIND1		  	; go to next name
+FIND5:	dq RFROM,DROP,SWAP,DROP	  	; nfa+2 --
+	dq TWOM			  	; nfa --
+	dq DUPP,NAMET,SWAP,EXITT  	; cfa nfa --, find name
+FIND6:	dq RFROM,DROP			; a+2 0 --, end of dictionary
+	dq SWAP,TWOM,SWAP		; a 0 --, return with 0 flag
+	dq EXITT
+
+
+	;; name? ( a -- cfa nfa | a F )
+	;; Search dictionary for a string.
+	$COLON 5,'name?',NAMEQ
+	dq CNTXT,FIND			; initial nfa is in CONTEXT
+	dq EXITT
 
 
 	$COLON 2,'#L',DIGL
