@@ -1204,9 +1204,38 @@ TYPE2:	dq DONXT,TYPE1
 	;; CR ( -- )
 	;; Output a carriage return and a line feed.
 	$COLON 2,'CR',CR
-	dq DOLIT,CRR,EMIT	; CR
 	dq DOLIT,LF,EMIT	; LF
 	dq EXITT
+
+
+	;; String literal words
+
+	;; do$ ( -- a )
+	;; Return the address of a compiled string.
+	$COLON COMPO+3,'do$',DOSTR
+	dq RFROM		; 1st return address must be saved
+	dq RAT,RFROM		; 2ns return address points to counted string a
+	dq COUNT,PLUS		; address of next token after string literal
+	dq TOR,SWAP		; replace 2nd return address
+	dq TOR			; restore saved 1st return address
+	dq EXITT
+
+
+	;; $"| ( -- a )
+	;; Runtime routine compiled by $". Return address of compiled string.
+	$COLON COMPO+3,'$"|',STRQP
+	dq DOSTR		; force a call to do$
+	dq EXITT
+
+
+	;; ."| ( -- )
+	;; Runtime routine of .". Output a compiled string.
+	$COLON COMPO+3,'."|',DOTQP
+	dq DOSTR,COUNT,TYPES	; display following string
+	dq EXITT
+
+
+	;; Parsing
 
 
 	$COLON 2,'#L',DIGL
