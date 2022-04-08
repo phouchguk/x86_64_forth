@@ -2,6 +2,7 @@
 
 	%define CELLL 8
 	%define COMPO 040h
+	%define IMEDD 080h
 	%define BASEE 10
 	%define LF 10
 	%define CRR 13
@@ -1287,6 +1288,43 @@ PARS8:	dq OVER,RFROM,SUBBB	; b u delta --
 
 
 	;; Parsing Words
+
+	;; .( ( -- )
+	;; Output following string up to next ).
+	$COLON IMEDD+2,'.(',DOTPTR
+	dq DOLIT,')',PARSE,TYPES	; parse till ) and display parsed string
+	dq EXITT
+
+
+	;; ( ( -- )
+	;; Ignore following string up to next ). A comment.
+	$COLON IMEDD+1,'(',PAREN
+	dq DOLIT,')',PARSE,DDROP   ; parse til ) and discard parsed string
+	dq EXITT
+
+
+	;; \ ( -- )
+	;; Ignore following text till the end of the line.
+	$COLON IMEDD+1,'\',BKSLA
+	dq NTIB,ATT,INN,STORE	; make >IN equal to #TIB and terminate parsing
+	dq EXITT
+
+
+	;; WORD ( c -- a ; <string> )
+	;; Parse a word from input stream and copy it to code dictionary.
+	$COLON 4,'WORD',WORDD
+	dq PARSE		; parse till c
+	dq HERE,CELLP
+	dq PACKS		; pack parsed string to HERE buffer
+	dq EXITT
+
+
+	;; token ( -- a ; <string> )
+	;; Parse a word from input stream and copy it to name dictionary.
+	$COLON 5,'token',TOKEN
+	dq BLANK,WORDD		; parse next string delimited by spaces
+	dq EXITT		; pack parsed string to HERE buffer
+
 
 
 	$COLON 2,'#L',DIGL
