@@ -7,7 +7,7 @@
 	%define BASEE 10
 	%define LF 10
 	%define CRR 13
-
+	%define BKSPP 8
 	%assign _LINK 0
 
 	%macro $CODE 3
@@ -48,7 +48,7 @@
 	_CP	dq 0		; top of the dictionary
 	_LASTN	dq 0		; initial CONTEXT
 	ULAST	dq 0		; end of variable area
-	_TIB	times 20 dq 0	; terminal input buffer
+	_TIB	times 80 db 0	; terminal input buffer
 	_CPP	times 4096 dq 0	; user dictionary
 
 	section .text
@@ -1383,6 +1383,69 @@ FIND6:	dq RFROM,DROP			; a+2 0 --, end of dictionary
 	;; Search dictionary for a string.
 	$COLON 5,'name?',NAMEQ
 	dq CNTXT,FIND			; initial nfa is in CONTEXT
+	dq EXITT
+
+
+	;; Text input
+
+	;; ^h ( bot eot cur -- bot eot cur )
+	;; Backup the cursor by one character.
+	$COLON 2,'^h',BKSP
+	dq TOR,OVER,RFROM		; bot eot bot cur --
+	dq SWAP,OVER,XORR		; bot=cur?
+	dq QBRAN,BACK1
+	dq DOLIT,BKSPP,EMIT		; backspace
+	dq ONEM,BLANK,EMIT		; send blank
+	dq DOLIT,BKSPP,EMIT		; backspace again
+BACK1:  dq EXITT			; bot=cur, do not backspace
+
+
+	;; tap ( bot eot cur c -- bot eot cur )
+	;; Accept and echo the key stroke and bump the cursor
+	$COLON 3,'tap',TAP
+	dq DUPP,EMIT			; duplicate the character and emit it
+	dq OVER,CSTOR,ONEP		; store c at cur and increment cur
+	dq EXITT
+
+
+	;; ktap ( bot eot cur c -- bot eot cur )
+	;; Process a key stroke, CR or backspace.
+	$COLON 4,'ktap',KTAP
+	dq DUPP,DOLIT,CRR,XORR		; is key a return?
+	dq QBRAN,KTAP2
+	dq DOLIT,BKSPP,XORR		; is key a backspace?
+	dq QBRAN,KTAP1
+	dq BLANK,TAP,EXITT		; none of above, replace by space
+KTAP1:	dq BKSP,EXITT			; process backspace
+KTAP2:	dq DROP,SWAP,DROP,DUPP		; process carriage return
+	dq EXITT
+
+
+	;; accept ( b u1 -- b u2 )
+	;; Accept characters to input buffer. Return with actual count.
+	$CODE 6,'accept',ACCEP
+	pop rdx			; len
+	pop rsi			; addr
+	push rsi		; duplicate address
+
+	mov r10, rsi		; preserve rsi
+	mov rax, 0 		; nr
+	mov rdi, 1		; fd
+	syscall
+
+	mov rsi, r10		; restore rsi
+
+	push rax		; the actual count
+
+	$NEXT
+
+
+	;; query ( -- )
+	;; Accept input stream to terminal input buffer.
+	$COLON 5,'query',QUERY
+	dq TIB,DOLIT,80,ACCEP	; accept up to 80 characters to TIB
+	dq NTIB,STORE,DROP	; store actual string length in #TIB
+	dq DOLIT,0,INN,STORE	; init >IN
 	dq EXITT
 
 
