@@ -7,7 +7,7 @@
 	%define COMPO 040h
 	%define IMEDD 080h
 	%define MASKK 0ff1fh
-	%define BASEE 10
+	%define BASEE 16
 	%define LF 10
 	%define CRR 13
 	%define BKSPP 8
@@ -955,7 +955,7 @@ EXE1:	dq EXITT		; do nothing if zero
 
 	;; FILL ( b u c -- )
 	;; Fill u bytes of character c to area beginning at b.
-	$COLON 4,'FILL',FILL
+	$CODE 4,'FILL',FILL
 	pop rax			; get byte pattern c
 	pop rcx			; get count u
 	pop rdi			; get address b
@@ -965,6 +965,7 @@ EXE1:	dq EXITT		; do nothing if zero
 
 	;; ERASE ( b u -- )
 	;; Erase u bytes beginning at b.
+	$COLON 5,'ERASE',ERASE
 	dq DOLIT,0,FILL		; just fill with zero
 	dq EXITT
 
@@ -1445,11 +1446,11 @@ KTAP2:	dq DROP,SWAP,DROP,DUPP		; process carriage return
 	mov rsi, r10		; restore rsi
 
 GS1:
-	pop rcx
-	push rcx		; dup b
+	;pop rcx
+	;push rcx		; dup b
 
-	lea rbx, [rcx+rax-1]
-	mov byte [rbx], ' '	; replace newline with blank
+	;lea rbx, [rcx+rax-1]
+	;mov byte [rbx], ' '	; replace newline with blank
 
 	push rax		; the actual count
 
@@ -1486,7 +1487,7 @@ ABOR2:	dq DOSTR,DROP		      ; drop error string
 	$COLON 6,'?stack',QSTAC
 	dq DEPTH,ZLESS		; check only for underflow
 	dq ABORQ		; abort if true
-	db 11,'underflow'
+	db 11,' underflow '
 	dq EXITT
 
 
@@ -1499,7 +1500,7 @@ ABOR2:	dq DOSTR,DROP		      ; drop error string
 	dq QBRAN,INTE1		; No. Go convert to number.
 	dq ATT,DOLIT,COMPO,ANDD	; test compile-only lexicon bit
 	dq ABORQ		; if it is compile-only abort
-	db 13,'compile only'
+	db 13,' compile only '
 	dq EXECU,EXITT		; otherwise, execute defined word
 INTE1:	dq NUMBQ		; convert to a number
 	dq QBRAN,ABOR1		; not a number, abort
@@ -1730,7 +1731,7 @@ QUIT2:	dq QUERY		; get input
 	dq DUPP,NAMEQ			; word defined?
 	dq QBRAN,UNIQ1
 	dq DOTQP			; redefinitions are ok
-	db 7,'reDef'			; but the user should be warned
+	db 7,' reDef '			; but the user should be warned
 	dq OVER,COUNT,TYPES		; just in case it is not intended
 UNIQ1:	dq DROP
 	dq EXITT
@@ -1742,14 +1743,14 @@ UNIQ1:	dq DROP
 	dq DUPP,CAT			; null input?
 	dq QBRAN,PNAM1
 	dq UNIQU			; redefinition?
-	dq DUPP,COUNT,PLUS,STORE	; skip over name field
+	dq DUPP,COUNT,PLUS		; skip over name field
 	dq CP,STORE			; CP points to code field now
 	dq DUPP,LAST,STORE		; save nfa for dictionary link
 	dq CELLM			; link address
 	dq CNTXT,ATT,SWAP
 	dq STORE,EXITT			; fill link field with CONTEXT
 PNAM1:	dq STRQP			; warning message
-	db 5,'name'			; null input
+	db 5,' name'			; null input
 	dq BRAN,ABOR1
 
 
@@ -1898,7 +1899,7 @@ TNAM4:	dq DDROP,DOLIT,0		; end of dictionary, return false flag
 	dq COUNT,DOLIT,01FH,ANDD	; mask lexicon bits
 	dq TYPES,EXITT			; display name string
 DOTI1:	dq DOTQP			; no name
-	db 9,'[noName]'
+	db 9,' {noName}'
 	dq EXITT
 
 
