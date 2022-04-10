@@ -101,7 +101,7 @@ DOCON:
 	mov r10, rsi		; preserve rsi
 
 	mov rax, 0 		; nr
-	mov rdi, 1		; fd
+	mov rdi, 0		; fd
 	mov rsi, inchr		; addr
 	mov rdx, 1              ; len
 	syscall
@@ -121,8 +121,9 @@ DOCON:
 	;; Wait for and return an input character.
 	$CODE 3,'KEY',KEY
 	mov r10, rsi		; preserve rsi
+
 	mov rax, 0 		; nr
-	mov rdi, 1		; fd
+	mov rdi, 0		; fd
 	mov rsi, inchr		; addr
 	mov rdx, 1              ; len
 	syscall
@@ -191,7 +192,7 @@ BRAN1:	mov rsi, [rsi]		; IP=[IP]. Do the branching.
 	;; Run time code for the single index loop.
 	$CODE COMPO+5,'donxt',DONXT
 	sub qword [rbp], 1	; decrement loop index on the return stack
-	jc NEXT1		; decrement below 0?
+	jc short NEXT1		; decrement below 0?
 	mov rsi, [rsi]		; no, continue loop. IP=[IP]
 	$NEXT
 NEXT1:	add rbp, CELLL		; pop loop index
@@ -478,7 +479,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$CODE 4,'?DUP',QDUP
 	pop rax
 	or rax, rax 		; test tos
-	jz QDUP1
+	jz short QDUP1
 	push rax
 QDUP1:	push rax		; push twice
 	$NEXT
@@ -587,7 +588,7 @@ QDUP1:	push rax		; push twice
 	$CODE 3,'ABS',ABSS
 	pop rax
 	or rax, rax
-	jge ABS1
+	jge short ABS1
 	neg rax
 ABS1:	push rax
 	$NEXT
@@ -602,7 +603,7 @@ ABS1:	push rax
 	pop rdx
 	pop rbx
 	xor rdx, rbx		; compare
-	jnz EQU1
+	jnz short EQU1
 	dec rax			; change false flag to true flag
 EQU1:	push rax
 	$NEXT
@@ -626,7 +627,7 @@ EQU1:	push rax
 	pop rbx
 	pop rcx
 	sub rcx, rbx		; compare
-	jge LESS1
+	jge short LESS1
 	dec rax			; make true flag
 LESS1:	push rax
 	$NEXT
@@ -638,7 +639,7 @@ LESS1:	push rax
 	pop rbx
 	pop rax
 	cmp rax, rbx		; compare
-	jge MAX1		; select larger
+	jge short MAX1		; select larger
 	xchg rax, rbx
 MAX1:	push rax
 	$NEXT
@@ -650,7 +651,7 @@ MAX1:	push rax
 	pop rbx
 	pop rax
 	cmp rax, rbx		; compare
-	jge MIN1		; select smaller
+	jge short MIN1		; select smaller
 	xchg rax, rbx
 MIN1:	push rbx
 	$NEXT
@@ -673,7 +674,7 @@ MIN1:	push rbx
 	pop rdx			; udh
 	pop rax			; udl
 	or rbx, rbx		; if un=0
-	jnz UMM1
+	jnz short UMM1
 UMM:	mov rax, -1		; return two -1's
 	push rax
 	push rax
@@ -691,7 +692,7 @@ UMM1:	div rbx			; else unsigned divide
 	pop rdx			; dh
 	pop rax			; dl
 	or rbx, rbx		; if n=0
-	jz UMM
+	jz short UMM
 MSM1:	div rbx			; signed divide
 	push rdx		; remainder
 	push rax		; quotient
@@ -1246,7 +1247,7 @@ TYPE2:	dq DONXT,TYPE1
 	;; Parsing
 
 	;; (parse) ( b u c -- b u delta ; <string )
-	;; Scan string delimited by c. Return found string an its offset.
+	;; Scan string delimited by c. Return found string and its offset.
 	$COLON 7,'(parse)',PARS
 	dq TEMP,STORE,OVER	; b u b --, save c
 	dq TOR,DUPP		; b u u --, save b test u
@@ -1287,10 +1288,10 @@ PARS8:	dq OVER,RFROM,SUBBB	; b u delta --
 	;; PARSE ( c -- b u ; <string> )
 	;; Scan input stream and return counted string delimited by c.
 	$COLON 5,'parse',PARSE
-	dq TOR,TIB,INN,ATT,PLUS	; current input buffer pointer to start parsing
-	dq NTIB,ATT,INN,SUBBB	; length of remaining string in TIB
-	dq RFROM,PARS		; parse desired string
-	dq INN,PSTOR		; move pointer to end of string
+	dq TOR,TIB,INN,ATT,PLUS		; current input buffer pointer to start parsing
+	dq NTIB,ATT,INN,ATT,SUBBB	; length of remaining string in TIB
+	dq RFROM,PARS			; parse desired string
+	dq INN,PSTOR			; move pointer to end of string
 	dq EXITT
 
 
@@ -1431,16 +1432,24 @@ KTAP2:	dq DROP,SWAP,DROP,DUPP		; process carriage return
 	;; Accept characters to input buffer. Return with actual count.
 	;; TODO: Should filter chars not WITHI BLANK and 127. Replace with spaces.
 	$CODE 6,'accept',ACCEP
+	mov r10, rsi		; preserve rsi
+
 	pop rdx			; len
 	pop rsi			; addr
 	push rsi		; duplicate address
 
-	mov r10, rsi		; preserve rsi
 	mov rax, 0 		; nr
-	mov rdi, 1		; fd
+	mov rdi, 0		; fd
 	syscall
 
 	mov rsi, r10		; restore rsi
+
+GS1:
+	pop rcx
+	push rcx		; dup b
+
+	lea rbx, [rcx+rax-1]
+	mov byte [rbx], ' '	; replace newline with blank
 
 	push rax		; the actual count
 
@@ -1954,7 +1963,8 @@ _start:
 	push rax
 	mov rax, rsp
 	mov [_SPP], rax
-	mov rbp, rs_top-CELLL
+	sub rax, 800H
+	mov rbp, rax
 	mov [_RPP], rbp
 	mov qword [_TIBB], _TIB
 	mov qword [_CP], _CPP
@@ -1967,5 +1977,5 @@ _start:
 
 	section .bss
 inchr:	resb 1
-return_stack: resq 128
-rs_top:
+;return_stack: resq 128
+;rs_top:
