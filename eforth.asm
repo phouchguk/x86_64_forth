@@ -1423,6 +1423,7 @@ KTAP2:	dq DROP,SWAP,DROP,DUPP		; process carriage return
 
 	;; accept ( b u1 -- b u2 )
 	;; Accept characters to input buffer. Return with actual count.
+	;; TODO: Should filter chars not WITHI BLANK and 127. Replace with spaces.
 	$CODE 6,'accept',ACCEP
 	pop rdx			; len
 	pop rsi			; addr
@@ -1447,6 +1448,99 @@ KTAP2:	dq DROP,SWAP,DROP,DUPP		; process carriage return
 	dq NTIB,STORE,DROP	; store actual string length in #TIB
 	dq DOLIT,0,INN,STORE	; init >IN
 	dq EXITT
+
+
+	;; ABORT ( -- )
+	;; Reset data stack and jump to QUIT.
+	$COLON 5,'ABORT',ABORT
+	dq PRESE,DOTS,QUIT	; dump stack as well
+
+
+	;; abort"| ( f -- )
+	;; Runtime routine of ABORT". Abort with an error message.
+	$COLON COMPO+7,'abort"|',ABORQ
+	dq QBRAN,ABOR2	      	      ; test flag
+	dq DOSTR		      ; get string address
+ABOR1:	dq SPACE,COUNT,TYPES	      ; display error string
+	dq DOLIT,'?',EMIT,CR,ABORT    ; go passed error string
+ABOR2:	dq DOSTR,DROP		      ; drop error string
+	dq EXITT
+
+	;; ?stack ( -- )
+	;; Abort if the data stack underflows.
+	$COLON 6,'?stack',QSTAC
+	dq DEPTH,ZLESS		; check only for underflow
+	dq ABORQ		; abort if true
+	db 11,'underflow'
+	dq EXITT
+
+
+	;; Text interpreter loop
+
+	;; $INTERPRET ( a -- )
+	;; Interpret a word. If failed, try to convert it to an integer.
+	$COLON 10,'$interpret',INTER
+	dq NAMEQ,QDUP		; word defined
+	dq QBRAN,INTE1		; No. Go convert to number.
+	dq ATT,DOLIT,COMPO,ANDD	; test compile-only lexicon bit
+	dq ABORQ		; if it is compile-only abort
+	db 13,'compile only'
+	dq EXECU,EXITT		; otherwise, execute defined word
+INTE1:	dq NUMBQ		; convert to a number
+	dq QBRAN,ABOR1		; not a number, abort
+	dq EXITT
+
+
+	;; [ ( -- )
+	;; Start the text interpreter.
+	$COLON IMEDD+1,'[',LBRAC
+	dq DOLIT,INTER		; get the address of $interpret
+	dq TEVAL,STORE		; store it in 'EVAL
+	dq EXITT
+
+
+	;; .ok ( -- )
+	;; Display the data stack only while interpreting.
+	$COLON 3,'.ok',DOTOK
+	dq CR,DOLIT,INTER	; 'EVAL contains $interpret?
+	dq TEVAL,ATT,EQUAL
+	dq QBRAN,DOTO1		; no, exit
+	dq DOTS			; yes, dump stack
+DOTO1:	dq EXITT
+
+
+	;; eval ( -- )
+	;; Interpret the input stream.
+	$COLON 4,'eval',EVAL
+EVAL1:	dq TOKEN,DUPP,CAT	; input stream empty?
+	dq QBRAN,EVAL2		; yes, exit
+	dq TEVAL,ATEXE,QSTAC	; no, evaluate input, check stack
+	dq BRAN,EVAL1		; loop back for the next word
+EVAL2	dq DROP,DOTOK		; done, display prompt
+	dq EXITT
+
+
+	;; preset ( -- )
+	;; Reset data stack pointer.
+	$COLON 6,'preset',PRESE
+	dq DOLIT,_SPP,ATT,SPSTO	; init data stack pointer
+	dq EXITT
+
+
+	;; quit ( -- )
+	;; Reset return stack pointer and start text interpreter.
+	$COLON 4,'quit',QUIT
+	dq DOLIT,_RPP,ATT,RPSTO	; init return stack pointer
+QUIT1:	dq LBRAC		; start interpretation
+QUIT2:	dq QUERY		; get input
+	dq EVAL			; process input
+	dq BRAN,QUIT2		; continue till error
+
+
+DEPTH:
+DOTS:
+
+
 
 
 	$COLON 2,'#L',DIGL
