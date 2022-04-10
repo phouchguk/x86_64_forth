@@ -1688,7 +1688,30 @@ DOTS:
 	dq EXITT			; compile branch address literal. Leave literal address A.
 
 
-	;; String literal
+	;; String literals
+
+	;; ABORT" ( -- ; <string> )
+	;; Conditional abort with an error message.
+	$COLON IMEDD+6,'ABORT"',ABRTQ
+	dq COMPI,ABORQ,STRCQ		; compile abort"| string literal with following string
+	dq EXITT
+
+
+	;; $" ( -- ; <string> )
+	;; Compile an inline string literal.
+	$COLON IMEDD+2,'$"',STRQ
+	dq COMPI,STRQP,STRCQ		; compile $"| string literal with following string
+	dq EXITT
+
+
+	;; ." ( -- ; <string> )
+	;; Compile an inline string literal to be typed out at runtime.
+	$COLON IMEDD+2,'."',DOTQ
+	dq COMPI,DOTQP,STRCQ		; compile ." string literal with following string
+	dq EXITT
+
+
+	;; Colon word compiler
 
 
 	$COLON 2,'#L',DIGL
