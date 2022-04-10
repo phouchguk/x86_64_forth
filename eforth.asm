@@ -1930,7 +1930,7 @@ SEE4:	dq NUFQ				; user control
 	;; The high-level cold-start sequence.
 	$COLON 4,'cold',COLD
 COLD1:	dq HEX,CR,DOTQP			; set base
-	db 13,'eForth v'		; sign-on message
+	db 13,'86eForth v'		; sign-on message
 	db VER+'0','.',EXT+'0'		; version and extension
 	dq CR,OVERT			; init data stack
 	dq ABORT			; start interpretation
@@ -1962,7 +1962,7 @@ _start:
 	mov qword [_LASTN], _LINK
 
 	cld
-	mov rax, TEST
+	mov rax, COLD
 	jmp [rax]		; jump to the address in rax i.e. docol?
 
 	section .bss
