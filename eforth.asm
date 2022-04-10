@@ -1713,6 +1713,95 @@ DOTS:
 
 	;; Colon word compiler
 
+	;; ?unique ( a -- a )
+	;; Display a warning if the word already exists.
+	$COLON 7,'?unique',UNIQU
+	dq DUPP,NAMEQ			; word defined?
+	dq QBRAN,UNIQ1
+	dq DOTQP			; redefinitions are ok
+	db 7,'reDef'			; but the user should be warned
+	dq OVER,COUNT,TYPES		; just in case it is not intended
+UNIQ1:	dq DROP
+	dq EXITT
+
+
+	;; $,n ( nfa -- )
+	;; Build a new dictionary name using the string at nfa.
+	$COLON 3,'$,n',SNAME
+	dq DUPP,CAT			; null input?
+	dq QBRAN,PNAM1
+	dq UNIQU			; redefinition?
+	dq DUPP,COUNT,PLUS,STORE	; skip over name field
+	dq CP,STORE			; CP points to code field now
+	dq DUPP,LAST,STORE		; save nfa for dictionary link
+	dq CELLM			; link address
+	dq CNTXT,ATT,SWAP
+	dq STORE,EXITT			; fill link field with CONTEXT
+PNAM1:	dq STRQP			; warning message
+	db 5,'name'			; null input
+	dq BRAN,ABOR1
+
+
+	;; $compile ( a -- )
+	;; Compile next word to code dictionary as a token or literal.
+	$COLON 8,'$compile',SCOMP
+	dq NAMEQ,DUPP			; word defined
+	dq QBRAN,SCOM2
+	dq ATT,DOLIT,IMEDD,ANDD		; immediate?
+	dq QBRAN,SCOM1
+	dq EXECU,EXITT			; it's immediate, execute
+SCOM1:	dq COMMA,EXITT			; it's not immediate, compile
+SCOM2:  dq NUMBQ			; try to convert to a number
+	dq QBRAN,ABOR1
+	dq LITER			; compile number as integer literal
+	dq EXITT
+
+
+	;; overt ( -- )
+	;; Link a new word into the current dictionary.
+	$COLON 5,'overt',OVERT
+	dq LAST,ATT
+	dq CNTXT,STORE			; initialise CONTEXT from LAST
+	dq EXITT
+
+
+	;; ; ( -- )
+	;; Terminate a colon definition.
+	$COLON IMEDD+COMPO+1,';',SEMIS
+	dq COMPI,EXITT			; compile EXIT
+	dq LBRAC,OVERT			; return to interpret mode
+	dq EXITT
+
+
+	;; ] ( -- )
+	;; Start compiling the words in the input stream.
+	$COLON 1,']',RBRAC
+	dq DOLIT,SCOMP	       	     	; change 'EVAL to $compile
+	dq TEVAL,STORE			; switch to compile mode
+	dq EXITT
+
+
+	;; : ( -- ; <string> )
+	;; Start a new colon definition using next word as its name.
+	$COLON 1,':',COLON
+	dq TOKEN,SNAME			; get next string and build new name field
+	dq DOLIT,DOLST,COMMA		; compile DOLST into code field
+	dq RBRAC			; switch to compile mode
+	dq EXITT
+
+
+	;; IMMEDIATE ( -- )
+	;; Make the last compiled word an immediate word.
+	$COLON 9,'IMMEDIATE',IMMED
+	dq DOLIT,IMEDD			; immediate bit
+	dq LAST,ATT,CAT,ORR		; add it to lexicon byte in the last name field
+	dq LAST,ATT,CSTOR		; store back to lexicon byte
+	dq EXITT
+
+
+	; Defining words
+
+
 
 	$COLON 2,'#L',DIGL
 	dq DOLIT,20,DOTR,DOLIT,LF,EMIT,EXITT
