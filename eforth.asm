@@ -1537,10 +1537,6 @@ QUIT2:	dq QUERY		; get input
 	dq BRAN,QUIT2		; continue till error
 
 
-DEPTH:
-DOTS:
-
-
 	;; Chapter 9 - Colon compiler
 
 	;; ' ( -- cfa )
@@ -1801,6 +1797,84 @@ SCOM2:  dq NUMBQ			; try to convert to a number
 
 	; Defining words
 
+	;; CREATE ( -- ; <string> )
+	;; Compile a new array entry without allocating code space.
+	$COLON 6,'CREATE',CREAT
+	dq TOKEN,SNAME,OVERT		; build new link and name fields
+	dq DOLIT,DOVAR,COMMA		; compile DOVAR into code field
+	dq EXITT
+
+
+	;; CONSTANT ( n -- ; <string> )
+	;; Compile a new constant.
+	$COLON 8,'CONSTANT',CONST
+	dq TOKEN,SNAME,OVERT		; build new link and name fields
+	dq DOLIT,DOCON,COMMA		; compile DOCON into code field
+	dq COMMA			; compile n into parameter field
+	dq EXITT
+
+
+	;; VARIABLE ( -- ; <string> )
+	;; Compile a new variable initialised to 0.
+	$COLON 8,'VARIABLE',VARIA
+	dq CREAT,DOLIT,0,COMMA		; compile link, name and DOVAR field
+	dq EXITT
+
+
+	;; Chapter 10 - Utilities
+
+	;; Memory dump
+
+	;; DUMP ( a -- )
+	;; Dump 128 bytes from a, in a formatted manner.
+	$COLON 4,'DUMP',DUMP
+	dq DOLIT,7			; set line count to 7 for 8 lines
+	dq TOR				; start count down loop
+DUMP1:	dq CR,DUPP,DOLIT,8,UDOTR	; display address
+	dq SPACE,DOLIT,15		; add a space
+	dq TOR
+DUMP2:	dq COUNT,DOLIT,3,UDOTR		; display 16 bytes of data
+	dq DONXT,DUMP2
+	dq SPACE,DUPP			; add space
+	dq DOLIT,16,SUBBB		; back up 16 bytes
+	dq DOLIT,16,TYPES		; display 16 bytes of text
+	dq DONXT,DUMP1			; loop till done
+	dq DROP
+	dq EXITT
+
+
+	;; Stack dump
+
+	;; .S ( ... -- ... )
+	;; Display the contents of the data stack.
+	$COLON 2,'.S',DOTS
+	dq TOR,TOR,TOR			; save 3 items on stack
+	dq DUPP,DOT,RFROM		; dump 4th item
+	dq DUPP,DOT,RFROM		; dump 3rd item
+	dq DUPP,DOT,RFROM		; dump 2nd item
+	dq DUPP,DOT			; dump 1st item
+	dq DOTQP
+	db 3,' > '			; display separator
+	dq EXITT
+
+
+	;; Dictionary dump
+
+	;; >name ( cfa -- nfa | F )
+	;; Convert code address to a name address.
+	$COLON 5,'>name',TNAME
+	dq CNTXT			; dictionary link
+TNAM2:	dq ATT,DUPP			; last word in dictionary?
+	dq QBRAN,TNAM4			; yes, reach end of dictionary
+	dq DDUP,NAMET,XORR		; no, compare name
+	dq QBRAN,TNAM3			; word not found
+	dq CELLM			; continue with next word
+	dq BRAN,TNAM2
+TNAM3:	dq SWAP,DROP,EXITT		; found word, return nfa
+TNAM4:	dq DDROP,DOLIT,0		; end of dictionary, return false flag
+	dq EXITT
+
+DEPTH:
 
 
 	$COLON 2,'#L',DIGL
