@@ -1,5 +1,8 @@
 	BITS 64
 
+	%define VER 5
+	%define EXT 2
+
 	%define CELLL 8
 	%define COMPO 040h
 	%define IMEDD 080h
@@ -852,7 +855,7 @@ TCHA1:
 
 	;; depth ( -- n )
 	;; Return the depth of the data stack.
-	$COLON 5,'depth',DEPTCH
+	$COLON 5,'depth',DEPTH
 	dq SPAT,DOLIT,_SPP,ATT	; top and bottom of data stack
 	dq SWAP,SUBBB
 	dq DOLIT,CELLL,SLASH	; divide by 8
@@ -1167,11 +1170,14 @@ NUMQ6:	dq RFROM,DDROP		; discard garbage
 	;; nuf? ( -- t )
 	;; Return false if no input, else pause and if CR return true.
 	$COLON 4,'nuf?',NUFQ
-	dq QKEY,DUPP		; got a key?
-	dq QBRAN,NUFQ1		; No, return a false flag
-	dq DDROP,KEY		; Yes. Get key.
-	dq DOLIT,CRR,EQUAL	; Is it a CR? Return a flag.
-NUFQ1:	dq EXITT
+	dq DOLIT,0		; always false
+	dq EXITT
+
+;	dq QKEY,DUPP		; got a key?
+;	dq QBRAN,NUFQ1		; No, return a false flag
+;	dq DDROP,KEY		; Yes. Get key.
+;	dq DOLIT,CRR,EQUAL	; Is it a CR? Return a flag.
+;NUFQ1:	dq EXITT
 
 
 	;; SPACE ( -- )
@@ -1874,7 +1880,60 @@ TNAM3:	dq SWAP,DROP,EXITT		; found word, return nfa
 TNAM4:	dq DDROP,DOLIT,0		; end of dictionary, return false flag
 	dq EXITT
 
-DEPTH:
+
+	;; .id ( nfa -- )
+	;; Display the name at name field address.
+	$COLON 3,'.id',DOTID
+	dq QDUP				; if 0, no name
+	dq QBRAN,DOTI1
+	dq COUNT,DOLIT,01FH,ANDD	; mask lexicon bits
+	dq TYPES,EXITT			; display name string
+DOTI1:	dq DOTQP			; no name
+	db 9,'[noName]'
+	dq EXITT
+
+
+	;; WORDS ( -- )
+	;; Display the names in the context dictionary.
+	$COLON 5,'WORDS',WORDS
+	dq CR,CNTXT			; start at CONTEXT
+WORS1:	dq ATT,QDUP			; end of dictionary?
+	dq QBRAN,WORS2			; yes, exit
+	dq DUPP,SPACE,DOTID		; display a name
+	dq CELLM,NUFQ			; user control
+	dq QBRAN,WORS1			; repeat next word
+	dq DROP				; stop by user
+WORS2:	dq EXITT
+
+
+	;; SEE ( -- ; <string> )
+	;; A simple decompiler. Updated for byte machines.
+	$COLON 3,'SEE',SEE
+	dq TICK				; starting address
+	dq CR,CELLP
+SEE1:	dq ONEP,DUPP,ATT,DUPP		; does it contain zero?
+	dq QBRAN,SEE2
+	dq TNAME			; is it a name?
+SEE2:	dq QDUP				; name address or zero
+	dq QBRAN,SEE3
+	dq SPACE,DOTID			; display name
+	dq ONEP,TWOP			; next token
+	dq BRAN,SEE4
+SEE3:	dq DUPP,CAT,UDOT		; display number
+SEE4:	dq NUFQ				; user control
+	dq QBRAN,SEE1			; decompile next token
+	dq DROP
+	dq EXITT
+
+
+	;; cold ( -- )
+	;; The high-level cold-start sequence.
+	$COLON 4,'cold',COLD
+COLD1:	dq HEX,CR,DOTQP			; set base
+	db 13,'eForth v'		; sign-on message
+	db VER+'0','.',EXT+'0'		; version and extension
+	dq CR,OVERT			; init data stack
+	dq ABORT			; start interpretation
 
 
 	$COLON 2,'#L',DIGL
@@ -1884,10 +1943,15 @@ DEPTH:
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq DOLIT,-1234,DIGL,DOLIT,42,DIGL,DOLIT,123456789,DIGL,BYE
+	dq CR,DOLIT,-1234,DIGL,DOLIT,42,DIGL,DOLIT,123456789,DIGL,BYE
 
 
 _start:
+	xor rax, rax
+	push rax
+	push rax
+	push rax
+	push rax
 	mov rax, rsp
 	mov [_SPP], rax
 	mov rbp, rs_top-CELLL
@@ -1905,4 +1969,3 @@ _start:
 inchr:	resb 1
 return_stack: resq 128
 rs_top:
-mem:	resb 4098
