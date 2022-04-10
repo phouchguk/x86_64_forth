@@ -1541,6 +1541,154 @@ DEPTH:
 DOTS:
 
 
+	;; Chapter 9 - Colon compiler
+
+	;; ' ( -- cfa )
+	;; Search dictionary for the next word in input stream.
+	$COLON 1,"'",TICK
+	dq TOKEN,NAMEQ		; word defined?
+	dq QBRAN,ABOR1
+	dq EXITT		; yes, push code field address
+
+
+	;; ALLOT ( n -- )
+	;; Allocate n bytes to the code dictionary.
+	$COLON 5,'ALLOT',ALLOT
+	dq CP,PSTOR		; adjust the dictionary pointer
+	dq EXITT
+
+
+	;; , ( w -- )
+	;; Compile an integer to the code dictionary.
+	$COLON 1,',',COMMA
+	dq HERE,DUPP,CELLP,CP,STORE	; advance CP
+	dq STORE			; compile w to dictionary
+	dq EXITT
+
+
+	;; compile ( -- )
+	;; Compile the next address in colon list to code dictionary.
+	$COLON COMPO+7,'compile',COMPI
+	dq RFROM,DUPP,ATT,COMMA		; compile address
+	dq CELLP,TOR			; adjust return address
+	dq EXITT
+
+
+	;; [compile] (-- ; <string> )
+	;; Compile the next immediate word into code dictionary.
+	$COLON IMEDD+9,'[compile]',BCOMP
+	dq TICK,COMMA			; search next word and compile its cfa
+	dq EXITT
+
+
+	;; literal ( w -- )
+	;; Compile tos to dictionary as an integer literal.
+	$COLON IMEDD+7,'literal',LITER
+	dq COMPI,DOLIT,COMMA		; compile DOLIT and w as an integer literal
+	dq EXITT			; this is an integer literal in a colon word
+
+
+	;; $," ( -- )
+	;; Compile a literal string up to next ".
+	$COLON 3,'$,"',STRCQ
+	dq DOLIT,'"',PARSE,HERE		; compile string to code dictionary
+	dq PACKS,COUNT,PLUS		; calculate aligned end of string
+	dq CP,STORE			; adjust the code pointer
+	dq EXITT
+
+
+	;; Control structures
+
+	;; FOR ( -- a )
+	;; Start a FOR-NEXT loop structure in a colon definition.
+	$COLON IMEDD+3,'FOR',FORR
+	dq COMPI,TOR			; compile >R to start a FOR-NEXT loop
+	dq HERE				; leave address a of next token
+	dq EXITT
+
+
+	;; NEXT ( a -- )
+	;; Terminate a FOR-NEXT loop structure.
+	$COLON IMEDD+4,'NEXT',NEXT
+	dq COMPI,DONXT,COMMA		; compile DONXT address with address a
+	dq EXITT
+
+
+	;; BEGIN ( -- a )
+	;; Start an infinite or indefinite loop structure.
+	$COLON IMEDD+5,'BEGIN',BEGIN
+	dq HERE				; leave address a of next token
+	dq EXITT
+
+
+	;; UNTIL ( a -- )
+	;; Terminate a BEGIN-UNTIL indefinite loop structure.
+	$COLON IMEDD+5,'UNTIL',UNTIL
+	dq COMPI,QBRAN,COMMA		; compile ?branch address literal with address a
+	dq EXITT
+
+
+	;; AGAIN ( a -- )
+	;; Terminate a BEGIN-AGAIN infinite loop structure.
+	$COLON IMEDD+5,'AGAIN',AGAIN
+	dq COMPI,BRAN,COMMA		; compile branch address literal with address a
+	dq EXITT
+
+
+	;; IF ( -- A )
+	;; Begin a conditional branch structure.
+	$COLON IMEDD+2,'IF',IFF
+	dq COMPI,QBRAN,HERE		; compile ?branch address literal, leave address a
+	dq DOLIT,0,COMMA		; init address field to 0
+	dq EXITT
+
+
+	;; ahead ( -- A )
+	;; Compile a forward branch instruction.
+	$COLON IMEDD+5,'ahead',AHEAD
+	dq COMPI,BRAN,HERE		; compile branch address literal, leave address A
+	dq DOLIT,0,COMMA		; init address field to 0
+	dq EXITT
+
+
+	;; REPEAT ( A a -- )
+	;; Terminate a BEGIN-WHILE-REPEAT indefinite loop.
+	$COLON IMEDD+6,'REPEAT',REPEA
+	dq AGAIN,HERE,SWAP,STORE	; compile branch address literal with address a
+	dq EXITT			; resolve address at A with current token address
+
+
+	;; THEN ( A -- )
+	;; Terminate a conditional branch structure.
+	$COLON IMEDD+4,'THEN',THENN
+	dq HERE,SWAP,STORE		; resolve address at A with current address
+	dq EXITT
+
+
+	;; AFT ( a -- a A )
+	;; Jump to THEN in a FOR-AFT-THEN-NEXT loop the first time through.
+	$COLON IMEDD+3,'AFT',AFT
+	dq DROP,AHEAD			; compile a branch address literal and leave A
+	dq BEGIN,SWAP			; replace a with address of current token
+	dq EXITT
+
+
+	;; ELSE ( A -- A )
+	;; Start the false clause in an IF-ELSE-THEN structure.
+	$COLON IMEDD+4,'ELSE',ELSEE
+	dq AHEAD,SWAP			; compile branch address literal. resolve address at a
+	dq THENN			; with current token address. replace A by literal address.
+	dq EXITT
+
+
+	;; WHILE ( a -- A a )
+	;; Conditional branch out of a BEGIN-WHILE-REPEAT loop.
+	$COLON IMEDD+5,'WHILE',WHILEE
+	dq IFF,SWAP
+	dq EXITT			; compile branch address literal. Leave literal address A.
+
+
+	;; String literal
 
 
 	$COLON 2,'#L',DIGL
