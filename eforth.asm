@@ -10,7 +10,7 @@
 	%define BASEE 16
 	%define LF 10
 	%define BKSPP 8
-	%assign _LINK 0
+	%xdefine _LINK 0
 
 	%macro $SAY 2
 	dq DOTQP
@@ -20,7 +20,7 @@
 
 	%macro $CODE 3
 	dq _LINK
-	%define _LINK $
+	%xdefine _LINK $
 	db %1, %2
 %3:
 	dq %3_CODE
@@ -29,7 +29,7 @@
 
 	%macro $COLON 3
 	dq _LINK
-	%define _LINK $
+	%xdefine _LINK $
 	db %1, %2
 %3:	dq DOLST
 	%endmacro
@@ -1406,6 +1406,7 @@ SAME2:	dq DONXT,SAME1		; same, loop for next byte
 	;; find ( a va -- cfa nfa | a F )
 	;; Search a dictionary for a string. Return cfa and nfa if succeeded.
 	$COLON 4,'find',FIND
+GS1:
 	dq SWAP,DUPP,CAT		; va a count --
 	dq TEMP,STORE		       	; count saved in tmp
 	dq DUPP,ATT,TOR
