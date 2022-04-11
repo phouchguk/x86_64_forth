@@ -9,9 +9,14 @@
 	%define MASKK 0ff1fh
 	%define BASEE 16
 	%define LF 10
-	%define CRR 13
 	%define BKSPP 8
 	%assign _LINK 0
+
+	%macro $SAY 2
+	dq DOTQP
+	db %1, %2
+	dq CR
+	%endmacro
 
 	%macro $CODE 3
 	dq _LINK
@@ -98,23 +103,27 @@ DOCON:
 	;; ?KEY ( -- c T | F )
 	;; Return input character and true, or a false and no input.
 	$CODE 4,'?KEY',QKEY
-	mov r10, rsi		; preserve rsi
-
-	mov rax, 0 		; nr
-	mov rdi, 0		; fd
-	mov rsi, inchr		; addr
-	mov rdx, 1              ; len
-	syscall
-
-	mov rsi, r10		; restore rsi
-
-	mov al, [inchr]
-	push rax		; the character
-
-	mov rax, -1
-	push rax		; true
-
+	xor rbx, rbx		; setup for false flag
+	push rbx
 	$NEXT
+
+	;mov r10, rsi		; preserve rsi
+
+	;mov rax, 0 		; nr
+	;mov rdi, 0		; fd
+	;mov rsi, inchr		; addr
+	;mov rdx, 1              ; len
+	;syscall
+
+	;mov rsi, r10		; restore rsi
+
+	;mov al, [inchr]
+	;push rax		; the character
+
+	;mov rax, -1
+	;push rax		; true
+
+	;$NEXT
 
 
 	;; KEY ( -- c )
@@ -122,8 +131,8 @@ DOCON:
 	$CODE 3,'KEY',KEY
 	mov r10, rsi		; preserve rsi
 
-	mov rax, 0 		; nr
-	mov rdi, 0		; fd
+	xor rax, rax		; rax=0, nr
+	xor rdi, rdi		; rdi=0, fd=stdin
 	mov rsi, inchr		; addr
 	mov rdx, 1              ; len
 	syscall
@@ -1172,14 +1181,11 @@ NUMQ6:	dq RFROM,DDROP		; discard garbage
 	;; nuf? ( -- t )
 	;; Return false if no input, else pause and if CR return true.
 	$COLON 4,'nuf?',NUFQ
-	dq DOLIT,0		; always false
-	dq EXITT
-
-;	dq QKEY,DUPP		; got a key?
-;	dq QBRAN,NUFQ1		; No, return a false flag
-;	dq DDROP,KEY		; Yes. Get key.
-;	dq DOLIT,CRR,EQUAL	; Is it a CR? Return a flag.
-;NUFQ1:	dq EXITT
+	dq QKEY,DUPP		; got a key?
+	dq QBRAN,NUFQ1		; No, return a false flag
+	dq DDROP,KEY		; Yes. Get key.
+	dq DOLIT,LF,EQUAL	; Is it a CR? Return a flag.
+NUFQ1:	dq EXITT
 
 
 	;; SPACE ( -- )
@@ -1419,42 +1425,56 @@ BACK1:  dq EXITT			; bot=cur, do not backspace
 	;; ktap ( bot eot cur c -- bot eot cur )
 	;; Process a key stroke, CR or backspace.
 	$COLON 4,'ktap',KTAP
-	dq DUPP,DOLIT,CRR,XORR		; is key a return?
+	dq DUPP,DOLIT,LF,XORR		; is key a return?
 	dq QBRAN,KTAP2
 	dq DOLIT,BKSPP,XORR		; is key a backspace?
 	dq QBRAN,KTAP1
 	dq BLANK,TAP,EXITT		; none of above, replace by space
 KTAP1:	dq BKSP,EXITT			; process backspace
-KTAP2:	dq DROP,SWAP,DROP,DUPP		; process carriage return
+KTAP2:  dq TOR,BLANK,TAP,RFROM		; original windows code expects lf+cr, lf would already have been turned into a space, tap a space
+	dq DROP,SWAP,DROP,DUPP		; process carriage return
 	dq EXITT
 
 
 	;; accept ( b u1 -- b u2 )
 	;; Accept characters to input buffer. Return with actual count.
 	;; TODO: Should filter chars not WITHI BLANK and 127. Replace with spaces.
-	$CODE 6,'accept',ACCEP
-	mov r10, rsi		; preserve rsi
+	$COLON 6,'accept',ACCEP
+	dq OVER,PLUS,OVER		; b b+u1 b --
+ACCP1:	dq DDUP,XORR			; b+u1 = current pointer?
+	dq QBRAN,ACCP4			; Yes, exit
+	dq KEY,DUPP			; No, get next character
+	dq BLANK,DOLIT,127,WITHI	; a valid character
+	dq QBRAN,ACCP2
+	dq TAP				; Yes, accept it to input buffer
+	dq BRAN,ACCP3
+ACCP2:	dq KTAP				; No, process control character
+ACCP3:	dq BRAN,ACCP1			; loop for next character
+ACCP4:	dq DROP,OVER,SUBBB		; done, return actual string length
+	dq EXITT
 
-	pop rdx			; len
-	pop rsi			; addr
-	push rsi		; duplicate address
 
-	mov rax, 0 		; nr
-	mov rdi, 0		; fd
-	syscall
+	;mov r10, rsi		; preserve rsi
 
-	mov rsi, r10		; restore rsi
+	;pop rdx			; len
+	;pop rsi			; addr
+	;push rsi		; duplicate address
 
-GS1:
+	;mov rax, 0 		; nr
+	;mov rdi, 0		; fd
+	;syscall
+
+	;mov rsi, r10		; restore rsi
+
 	;pop rcx
 	;push rcx		; dup b
 
 	;lea rbx, [rcx+rax-1]
 	;mov byte [rbx], ' '	; replace newline with blank
 
-	push rax		; the actual count
+	;push rax		; the actual count
 
-	$NEXT
+	;$NEXT
 
 
 	;; query ( -- )
