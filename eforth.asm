@@ -145,13 +145,45 @@ DOCON:
 	$NEXT
 
 
+	;; PTIB ( -- )
+	;; Print the input buffer
+	$CODE 4,'PTIB',PTIB
+ 	mov r10, rsi		; preserve rsi
+
+	mov rax, 1 		; nr
+	mov rdi, 1		; fd
+	mov rsi, _TIB		; addr
+	mov rdx, [_NTIB]	; len
+	syscall
+
+	mov rsi, r10		; restore rsi
+
+	$NEXT
+
+
+	;; PCP ( -- )
+	;; Print the input buffer
+	$CODE 3,'PCP',PCP
+ 	mov r10, rsi		; preserve rsi
+
+	mov rax, 1 		; nr
+	mov rdi, 1		; fd
+	mov rsi, _CPP+8		; addr
+	mov rdx, [_CPP]		; len
+	syscall
+
+	mov rsi, r10		; restore rsi
+
+	$NEXT
+
+
 	;; EMIT ( c -- )
 	;; Send character c to the output device.
 	$CODE 4,'EMIT',EMIT
 	pop rax
 	mov [inchr], al
 
-	mov r10, rsi		; preserve rsi
+ 	mov r10, rsi		; preserve rsi
 
 	mov rax, 1 		; nr
 	mov rdi, 1		; fd
@@ -335,7 +367,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	;; Return true if n is negative.
 	$CODE 2,'0<',ZLESS
 	pop rax			; pop n
-	cdq			; sign extend RAX to RDX
+	cqo			; sign extend RAX to RDX
 	push rdx		; push sign as flag
 	$NEXT
 
@@ -826,7 +858,7 @@ MSM1:	div rbx			; signed divide
 
 	;; 2+ ( a -- a+2 )
 	;; Add two to address.
-	$CODE 2,'1+',TWOP
+	$CODE 2,'2+',TWOP
 	pop rax
 	add rax, 2		; increment
 	push rax
@@ -849,6 +881,7 @@ MSM1:	div rbx			; signed divide
 	$COLON 2,'BL',BLANK
 	dq DOLIT,' '		; blank
 	dq EXITT
+
 
 	;; >CHAR ( c -- c )
 	;; Filter non-printing characters.
@@ -1331,6 +1364,10 @@ PARS8:	dq OVER,RFROM,SUBBB	; b u delta --
 	dq PARSE		; parse till c
 	dq HERE,CELLP
 	dq PACKS		; pack parsed string to HERE buffer
+	;dq PTIB
+	;dq DOLIT,'$',EMIT
+	;dq PCP
+	;dq DOLIT,'|',EMIT
 	dq EXITT
 
 
@@ -1417,7 +1454,7 @@ BACK1:  dq EXITT			; bot=cur, do not backspace
 	;; tap ( bot eot cur c -- bot eot cur )
 	;; Accept and echo the key stroke and bump the cursor
 	$COLON 3,'tap',TAP
-	dq DUPP,EMIT			; duplicate the character and emit it
+	;dq DUPP,EMIT			; duplicate the character and emit it
 	dq OVER,CSTOR,ONEP		; store c at cur and increment cur
 	dq EXITT
 
@@ -1973,7 +2010,7 @@ COLD1:	dq HEX,CR,DOTQP			; set base
 	;; TEST ( -- )
 	;; My test code.
 	$COLON 4,'TEST',TEST
-	dq CR,DOLIT,-1234,DIGL,DOLIT,42,DIGL,DOLIT,123456789,DIGL,BYE
+	dq CP,DOT,CR,DOLIT,-1234,DIGL,DOLIT,42,DIGL,DOLIT,123456789,DIGL,BYE
 
 
 _start:
