@@ -10,7 +10,7 @@
 	%define BASEE 16
 	%define LF 10
 	%define BKSPP 8
-	%xdefine _LINK 0
+	%define _LINK 0
 
 	%macro $SAY 2
 	dq DOTQP
@@ -20,7 +20,8 @@
 
 	%macro $CODE 3
 	dq _LINK
-	%xdefine _LINK $
+%3_NAME:
+	%define _LINK %3_NAME
 	db %1, %2
 %3:
 	dq %3_CODE
@@ -29,35 +30,17 @@
 
 	%macro $COLON 3
 	dq _LINK
-	%xdefine _LINK $
+%3_NAME:
+	%xdefine _LINK %3_NAME
 	db %1, %2
-%3:	dq DOLST
+%3:
+	dq DOLST
 	%endmacro
 
 	%macro $NEXT 0
 	lodsq
 	jmp [rax]
 	%endmacro
-
-	section .data
-
-	_UZERO	dq 0		; start of variable area
-	_SPP	dq 0		; bottom of the data stack
-	_RPP	dq 0		; bottom of the return stack
-	_BASE	dq BASEE	; radix base for numeric i/o
-	_TMP	dq 0		; temporary storage
-	_IN	dq 0		; current character pointer to input string
-	_SPAN	dq 0		; character count received by EXPECT
-	_NTIB	dq 0		; end of input string
-	_TIBB	dq 0		; beginning of input string
-	_EVAL	dq 0		; execution vector for EVAL
-	_HLD	dq 0		; next character in numeric output string
-	_CNTXT	dq 0		; name field of the last word in the dictionary
-	_CP	dq 0		; top of the dictionary
-	_LASTN	dq 0		; initial CONTEXT
-	ULAST	dq 0		; end of variable area
-	_TIB	times 80 db 0	; terminal input buffer
-	_CPP	times 4096 dq 0	; user dictionary
 
 	section .text
 
@@ -2022,8 +2005,7 @@ _start:
 	push rax
 	mov rax, rsp
 	mov [_SPP], rax
-	sub rax, 800H
-	mov rbp, rax
+	mov rbp, rs_top-CELLL
 	mov [_RPP], rbp
 	mov qword [_TIBB], _TIB
 	mov qword [_CP], _CPP
@@ -2034,7 +2016,27 @@ _start:
 	mov rax, COLD
 	jmp [rax]		; jump to the address in rax i.e. docol?
 
+	section .data
+
+	_UZERO	dq 0		; start of variable area
+	_SPP	dq 0		; bottom of the data stack
+	_RPP	dq 0		; bottom of the return stack
+	_BASE	dq BASEE	; radix base for numeric i/o
+	_TMP	dq 0		; temporary storage
+	_IN	dq 0		; current character pointer to input string
+	_SPAN	dq 0		; character count received by EXPECT
+	_NTIB	dq 0		; end of input string
+	_TIBB	dq 0		; beginning of input string
+	_EVAL	dq 0		; execution vector for EVAL
+	_HLD	dq 0		; next character in numeric output string
+	_CNTXT	dq 0		; name field of the last word in the dictionary
+	_CP	dq 0		; top of the dictionary
+	_LASTN	dq 0		; initial CONTEXT
+	ULAST	dq 0		; end of variable area
+	_TIB	times 80 db 0	; terminal input buffer
+	_CPP	times 4096 dq 0	; user dictionary
+
 	section .bss
 inchr:	resb 1
-;return_stack: resq 128
-;rs_top:
+return_stack: resq 128
+rs_top:
