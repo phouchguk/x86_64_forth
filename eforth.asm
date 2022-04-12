@@ -1389,7 +1389,6 @@ SAME2:	dq DONXT,SAME1		; same, loop for next byte
 	;; find ( a va -- cfa nfa | a F )
 	;; Search a dictionary for a string. Return cfa and nfa if succeeded.
 	$COLON 4,'find',FIND
-GS1:
 	dq SWAP,DUPP,CAT		; va a count --
 	dq TEMP,STORE		       	; count saved in tmp
 	dq DUPP,ATT,TOR
@@ -1541,7 +1540,7 @@ ABOR2:	dq DOSTR,DROP		      ; drop error string
 	dq QBRAN,INTE1		; No. Go convert to number.
 	dq ATT,DOLIT,COMPO,ANDD	; test compile-only lexicon bit
 	dq ABORQ		; if it is compile-only abort
-	db 13,' compile only '
+	db 13,' compile only'
 	dq EXECU,EXITT		; otherwise, execute defined word
 INTE1:	dq NUMBQ		; convert to a number
 	dq QBRAN,ABOR1		; not a number, abort
