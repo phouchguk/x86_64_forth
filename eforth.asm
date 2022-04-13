@@ -12,12 +12,6 @@
 	%define BKSPP 8
 	%define _LINK 0
 
-	%macro $SAY 2
-	dq DOTQP
-	db %1, %2
-	dq CR
-	%endmacro
-
 	%macro $CODE 3
 	dq _LINK
 %3_NAME:
@@ -126,39 +120,7 @@ DOCON:
 	push rax		; the character
 
 	$NEXT
-
-
-	;; PTIB ( -- )
-	;; Print the input buffer
-	$CODE 4,'PTIB',PTIB
- 	mov r10, rsi		; preserve rsi
-
-	mov rax, 1 		; nr
-	mov rdi, 1		; fd
-	mov rsi, _TIB		; addr
-	mov rdx, [_NTIB]	; len
-	syscall
-
-	mov rsi, r10		; restore rsi
-
-	$NEXT
-
-
-	;; PCP ( -- )
-	;; Print the input buffer
-	$CODE 3,'PCP',PCP
- 	mov r10, rsi		; preserve rsi
-
-	mov rax, 1 		; nr
-	mov rdi, 1		; fd
-	mov rsi, _CPP+8		; addr
-	mov rdx, [_CPP]		; len
-	syscall
-
-	mov rsi, r10		; restore rsi
-
-	$NEXT
-
+	
 
 	;; EMIT ( c -- )
 	;; Send character c to the output device.
@@ -1983,16 +1945,6 @@ COLD1:	dq HEX,CR,DOTQP			; set base
 	db VER+'0','.',EXT+'0'		; version and extension
 	dq CR,OVERT			; init data stack
 	dq ABORT			; start interpretation
-
-
-	$COLON 2,'#L',DIGL
-	dq DOLIT,20,DOTR,DOLIT,LF,EMIT,EXITT
-
-
-	;; TEST ( -- )
-	;; My test code.
-	$COLON 4,'TEST',TEST
-	dq CP,DOT,CR,DOLIT,-1234,DIGL,DOLIT,42,DIGL,DOLIT,123456789,DIGL,BYE
 
 
 _start:
