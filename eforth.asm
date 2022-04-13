@@ -1796,7 +1796,7 @@ PNAM1:	dq STRQP			; warning message
 	;; $compile ( a -- )
 	;; Compile next word to code dictionary as a token or literal.
 	$COLON 8,'$compile',SCOMP
-	dq NAMEQ,DUPP			; word defined
+	dq NAMEQ,QDUP			; word defined
 	dq QBRAN,SCOM2
 	dq ATT,DOLIT,IMEDD,ANDD		; immediate?
 	dq QBRAN,SCOM1
