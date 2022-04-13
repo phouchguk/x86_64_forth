@@ -69,12 +69,33 @@ DOCON:
 	$NEXT
 
 
+	;; SYS1 ( code nr -- n )
+	;; One arg syscall.
+	$CODE 4,'SYS1',SYS1
+	pop rax
+	pop rdi
+	syscall
+
+	;; SYS4 ( len addr fd nr -- )
+	$CODE 4,'SYS4',SYS4
+ 	mov r10, rsi		; preserve rsi
+
+	pop rax
+	pop rdi
+	pop rsi
+	pop rdx
+	syscall
+
+	mov rsi, r10		; restore rsi
+	$NEXT
+
+
 	;; BYE ( -- )
 	;; Exit eForth.
-	$CODE 3,'BYE',BYE
-	mov rax, 60		; nr
-	mov rdi,  0		; exit code
-	syscall
+	$COLON 3,'BYE',BYE
+	dq DOLIT,0		; exit code
+	dq DOLIT,60		; sycall nr i.e. EXIT
+	dq SYS1
 
 
 	;; ?KEY ( -- c T | F )
@@ -83,24 +104,6 @@ DOCON:
 	xor rbx, rbx		; setup for false flag
 	push rbx
 	$NEXT
-
-	;mov r10, rsi		; preserve rsi
-
-	;mov rax, 0 		; nr
-	;mov rdi, 0		; fd
-	;mov rsi, inchr		; addr
-	;mov rdx, 1              ; len
-	;syscall
-
-	;mov rsi, r10		; restore rsi
-
-	;mov al, [inchr]
-	;push rax		; the character
-
-	;mov rax, -1
-	;push rax		; true
-
-	;$NEXT
 
 
 	;; KEY ( -- c )
