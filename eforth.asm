@@ -1262,7 +1262,7 @@ TYPE2:	dq DONXT,TYPE1
 
 	;; ."| ( -- )
 	;; Runtime routine of .". Output a compiled string.
-	$COLON COMPO+3,'."|',DOTQP
+	$COLON COMPO+3,'."|',DOTQP ;"
 	dq DOSTR,COUNT,TYPES	; display following string
 	dq EXITT
 
@@ -1451,8 +1451,7 @@ BACK1:  dq EXITT			; bot=cur, do not backspace
 	dq QBRAN,KTAP1
 	dq BLANK,TAP,EXITT		; none of above, replace by space
 KTAP1:	dq BKSP,EXITT			; process backspace
-KTAP2:  dq TOR,BLANK,TAP,RFROM		; original windows code expects lf+cr, lf would already have been turned into a space, tap a space
-	dq DROP,SWAP,DROP,DUPP		; process carriage return
+KTAP2: 	dq DROP,SWAP,DROP,DUPP		; process carriage return
 	dq EXITT
 
 
