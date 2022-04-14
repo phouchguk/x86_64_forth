@@ -75,8 +75,11 @@ DOCON:
 	pop rax
 	pop rdi
 	syscall
+	push rax
+	$NEXT
 
-	;; SYS4 ( len addr fd nr -- )
+
+	;; SYS4 ( len addr fd nr -- n )
 	$CODE 4,'SYS4',SYS4
  	mov r10, rsi		; preserve rsi
 
@@ -85,6 +88,7 @@ DOCON:
 	pop rsi
 	pop rdx
 	syscall
+	push rax
 
 	mov rsi, r10		; restore rsi
 	$NEXT
@@ -123,7 +127,7 @@ DOCON:
 	push rax		; the character
 
 	$NEXT
-	
+
 
 	;; EMIT ( c -- )
 	;; Send character c to the output device.
@@ -1312,10 +1316,6 @@ PARS8:	dq OVER,RFROM,SUBBB	; b u delta --
 	dq PARSE		; parse till c
 	dq HERE,CELLP
 	dq PACKS		; pack parsed string to HERE buffer
-	;dq PTIB
-	;dq DOLIT,'$',EMIT
-	;dq PCP
-	;dq DOLIT,'|',EMIT
 	dq EXITT
 
 
@@ -1438,29 +1438,6 @@ ACCP4:	dq DROP,OVER,SUBBB		; done, return actual string length
 	dq EXITT
 
 
-	;mov r10, rsi		; preserve rsi
-
-	;pop rdx			; len
-	;pop rsi			; addr
-	;push rsi		; duplicate address
-
-	;mov rax, 0 		; nr
-	;mov rdi, 0		; fd
-	;syscall
-
-	;mov rsi, r10		; restore rsi
-
-	;pop rcx
-	;push rcx		; dup b
-
-	;lea rbx, [rcx+rax-1]
-	;mov byte [rbx], ' '	; replace newline with blank
-
-	;push rax		; the actual count
-
-	;$NEXT
-
-
 	;; query ( -- )
 	;; Accept input stream to terminal input buffer.
 	$COLON 5,'query',QUERY
@@ -1478,13 +1455,14 @@ ACCP4:	dq DROP,OVER,SUBBB		; done, return actual string length
 
 	;; abort"| ( f -- )
 	;; Runtime routine of ABORT". Abort with an error message.
-	$COLON COMPO+7,'abort"|',ABORQ
+	$COLON COMPO+7,'abort"|',ABORQ ;"
 	dq QBRAN,ABOR2	      	      ; test flag
 	dq DOSTR		      ; get string address
 ABOR1:	dq SPACE,COUNT,TYPES	      ; display error string
 	dq DOLIT,'?',EMIT,CR,ABORT    ; go passed error string
 ABOR2:	dq DOSTR,DROP		      ; drop error string
 	dq EXITT
+
 
 	;; ?stack ( -- )
 	;; Abort if the data stack underflows.
