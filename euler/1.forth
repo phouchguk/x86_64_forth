@@ -1,8 +1,5 @@
 \ Project Euler 1
 
-\ switch to decimal mode
-DECIMAL
-
 \ variable to hold the sum
 VARIABLE SUM
 

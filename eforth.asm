@@ -1939,9 +1939,9 @@ SEE4:	dq NUFQ				; user control
 	;; cold ( -- )
 	;; The high-level cold-start sequence.
 	$COLON 4,'cold',COLD
-COLD1:	dq HEX				; set base
+COLD1:	dq DECIMAL			; set base
 %ifdef REPL
-	dq CR,DOTQP
+	dq DOTQP
 	db 13,'86eForth v'		; sign-on message
 	db VER+'0','.',EXT+'0'		; version and extension
 	dq CR
