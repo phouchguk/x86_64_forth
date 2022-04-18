@@ -1,22 +1,37 @@
+\ Project Euler 1
+
+\ switch to decimal mode
 DECIMAL
 
+\ variable to hold the sum
 VARIABLE SUM
 
-: ACC SUM @ + SUM ! ;
+: 0= ( n -- T|F )
+  0 = ;
 
-: 0= 0 = ;
+: NMOD ( n m -- T|F )
+  OVER SWAP MOD 0= ;
 
-: MOD35
-  DUP 3 MOD 0= IF
+: ACC ( n -- n )
+  DUP SUM +! ;
+
+: MOD35 ( n -- )
+  3 NMOD IF
     ACC
   ELSE
-    DUP 5 MOD 0= IF
+    5 NMOD IF
       ACC
     THEN
   THEN ;
 
-: COUNTDOWN FOR R@ MOD35 NEXT ;
+: COUNTDOWN ( n -- )
+  FOR R@ MOD35 DROP NEXT ;
 
-999 COUNTDOWN
+: EULER1 ( -- )
+  \ sum all mod 3/5 numbers under 1000
+  999 COUNTDOWN
 
-SUM @ .
+  \ display sum
+  SUM @ . ;
+
+EULER1
