@@ -1,0 +1,22 @@
+DECIMAL
+
+VARIABLE SUM
+
+: ACC SUM @ + SUM ! ;
+
+: 0= 0 = ;
+
+: MOD35
+  DUP 3 MOD 0= IF
+    ACC
+  ELSE
+    DUP 5 MOD 0= IF
+      ACC
+    THEN
+  THEN ;
+
+: COUNTDOWN FOR R@ MOD35 NEXT ;
+
+999 COUNTDOWN
+
+SUM @ .

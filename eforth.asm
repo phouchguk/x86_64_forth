@@ -1078,7 +1078,10 @@ SIGN1:	dq EXITT
 	;; Display an unsigned integer in free format.
 	$COLON 2,'U.',UDOT
 	dq BDIGS,DIGS,EDIGS	; convert unsigned integer w
-	dq SPACE,TYPES		; add space and display number string
+%ifdef REPL
+	dq SPACE		; add space
+%endif
+	dq TYPES		; display number string
 	dq EXITT
 
 
@@ -1088,7 +1091,11 @@ SIGN1:	dq EXITT
 	dq BASE,ATT,DOLIT,10,XORR	; decimal?
 	dq QBRAN,DOT1
 	dq UDOT,EXITT		; No, display unsigned number
-DOT1:	dq STRR,SPACE,TYPES	; Yes, display signed number
+DOT1:	dq STRR			; Yes, display signed number
+%ifdef REPL
+	dq SPACE		; add space
+%endif
+	dq TYPES
 	dq EXITT
 
 
@@ -1454,7 +1461,11 @@ ACCP4:	dq DROP,OVER,SUBBB		; done, return actual string length
 	;; ABORT ( -- )
 	;; Reset data stack and jump to QUIT.
 	$COLON 5,'ABORT',ABORT
-	dq PRESE,DOTS,QUIT	; dump stack as well
+	dq PRESE
+%ifdef REPL
+	dq DOTS
+%endif
+	dq QUIT	; dump stack as well
 
 
 	;; abort"| ( f -- )
@@ -1518,7 +1529,10 @@ EVAL1:	dq TOKEN,DUPP,CAT	; input stream empty?
 	dq QBRAN,EVAL2		; yes, exit
 	dq TEVAL,ATEXE,QSTAC	; no, evaluate input, check stack
 	dq BRAN,EVAL1		; loop back for the next word
-EVAL2	dq DROP,DOTOK		; done, display prompt
+EVAL2:	dq DROP
+%ifdef REPL
+	dq DOTOK		; done, display prompt
+%endif
 	dq EXITT
 
 
@@ -1925,10 +1939,14 @@ SEE4:	dq NUFQ				; user control
 	;; cold ( -- )
 	;; The high-level cold-start sequence.
 	$COLON 4,'cold',COLD
-COLD1:	dq HEX,CR,DOTQP			; set base
+COLD1:	dq HEX				; set base
+%ifdef REPL
+	dq CR,DOTQP
 	db 13,'86eForth v'		; sign-on message
 	db VER+'0','.',EXT+'0'		; version and extension
-	dq CR,OVERT			; init data stack
+	dq CR
+%endif
+	dq OVERT 			; init data stack
 	dq ABORT			; start interpretation
 
 
