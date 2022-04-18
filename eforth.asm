@@ -105,17 +105,18 @@ DOCON:
 	;; ?KEY ( -- c T | F )
 	;; Return input character and true, or a false and no input.
 	$CODE 4,'?KEY',QKEY
-	xor rbx, rbx		; setup for false flag
-	push rbx
+	xor rax, rax		; setup for false flag
+	push rax
 	$NEXT
 
 
 	;; KEY ( -- c )
 	;; Wait for and return an input character.
 	$CODE 3,'KEY',KEY
-	mov r10, rsi		; preserve rsi
+	xor rax, rax		; reset [inchr], rax=0, nr for kernel
+	mov [inchr], al
 
-	xor rax, rax		; rax=0, nr
+	mov r10, rsi		; preserve rsi
 	xor rdi, rdi		; rdi=0, fd=stdin
 	mov rsi, inchr		; addr
 	mov rdx, 1              ; len
@@ -123,7 +124,7 @@ DOCON:
 
 	mov rsi, r10		; restore rsi
 
-	mov al, [inchr]
+	mov al, [inchr]		; will be zero if nothing was written because we reset it
 	push rax		; the character
 
 	$NEXT
@@ -1412,9 +1413,12 @@ BACK1:  dq EXITT			; bot=cur, do not backspace
 	$COLON 4,'ktap',KTAP
 	dq DUPP,DOLIT,LF,XORR		; is key a return?
 	dq QBRAN,KTAP2
-	dq DOLIT,BKSPP,XORR		; is key a backspace?
+	dq DUPP,DOLIT,BKSPP,XORR	; is key a backspace?
 	dq QBRAN,KTAP1
+	dq DOLIT,0,XORR		; is key 0
+	dq QBRAN,KTAP0
 	dq BLANK,TAP,EXITT		; none of above, replace by space
+KTAP0:	dq CR,BYE			; quit
 KTAP1:	dq BKSP,EXITT			; process backspace
 KTAP2: 	dq DROP,SWAP,DROP,DUPP		; process carriage return
 	dq EXITT
