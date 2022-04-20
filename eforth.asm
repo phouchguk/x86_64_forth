@@ -687,7 +687,7 @@ UMM1:	div rbx			; else unsigned divide
 	pop rax			; dl
 	or rbx, rbx		; if n=0
 	jz short UMM
-MSM1:	div rbx			; signed divide
+MSM1:	idiv rbx		; signed divide
 	push rdx		; remainder
 	push rax		; quotient
 	$NEXT
