@@ -56,7 +56,7 @@ DOVAR:
 
 DOCON:
 	add rax, CELLL
-	push rax
+	push qword [rax]
 	$NEXT
 
 
