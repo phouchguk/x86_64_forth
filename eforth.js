@@ -1,11 +1,17 @@
 "use strict";
 
 const CELLL = 8;
+const INLINE = 5;
 
 let id = 1;
 
 const vars = {};
 const cnsts = {};
+const output = {};
+
+function isInline(name) {
+  return bifs[name].length <= INLINE;
+}
 
 const bifs = {
   "0<": ["  pop rax", "  cqo", "  push rdx"],
@@ -67,7 +73,7 @@ variable sum
 euler1
 `;
 
-function build(code) {
+function build(code, out) {
   const trim = (x) => x.trim();
   const rblank = (x) => x !== "";
 
@@ -86,22 +92,69 @@ function build(code) {
     // word def
 
     if (token === ":") {
-      words[tokens[++i]] = id++;
+      const name = tokens[++i];
+      const wId = id++;
+
+      words[name] = wId;
+
+      out.text = out.text.concat([
+        `w${wId}:`,
+        `  ; ${name}`,
+        "  xchg rbp, rsp",
+      ]);
+
       continue;
     }
 
     if (token === ";") {
+      out.text = out.text.concat(["", "  xchg rbp, rsp", "  ret", ""]);
+
       continue;
     }
 
     if (bifs[token]) {
-      //console.log(token, "bif");
+      if (isInline(token)) {
+        out.text.push("");
+        out.text.push(`  ; ${token}`);
+        out.text = out.text.concat(bifs[token]);
+      } else {
+        if (!output[token]) {
+          // don't render in the middle of a word. signal that it needs to be rendered.
+          output[token] = id++;
+        }
+
+        const bId = output[token];
+        out.text = out.text.concat([
+          "",
+          `  ; ${token}`,
+          "  xchg rbp, rsp",
+          `  call b${bId}`,
+          "  xchg rbp, rsp",
+        ]);
+      }
     } else if (words[token]) {
-      //console.log(token, "word");
+      const wId = words[token];
+      out.text = out.text.concat([
+        "",
+        `  ; ${token}`,
+        "  xchg rbp, rsp",
+        `  call w${wId}`,
+        "  xchg rbp, rsp",
+      ]);
     } else if (cnsts[token]) {
-      //console.log(token, "const", cnsts[token]);
+      out.text = out.text.concat([
+        "",
+        `  ; constant ${token}`,
+        `  mov rax, ${cnsts[token]}`,
+        "  push rax",
+      ]);
     } else if (vars[token]) {
-      //console.log(token, "var");
+      out.text = out.text.concat([
+        "",
+        `  ; variable ${token}`,
+        `  lea rax, [v${vars[token]}]`,
+        "  push rax",
+      ]);
     } else {
       const n = parseInt(token, 10);
 
@@ -111,15 +164,30 @@ function build(code) {
         if (tokens[i + 1] === "constant") {
           cnsts[tokens[i + 2]] = n;
           i += 2;
+        } else {
+          out.text = out.text.concat(["", `  mov rax, ${n}`, "  push rax"]);
         }
-
-        //console.log(token, "nr");
       }
     }
-
-    //i += check(token, i, tokens);
   }
 }
 
-build(std);
-build(code);
+const pre = { text: [] };
+const out = { text: [] };
+
+build(std, out);
+build(code, out);
+
+for (const k in output) {
+  if (!output.hasOwnProperty(k)) {
+    continue;
+  }
+
+  pre.text.push(`b${output[k]}:`);
+  pre.text.push(`  ; ${k}`);
+  pre.text = pre.text.concat(bifs[k]);
+  pre.text.push("");
+}
+
+pre.text.forEach((x) => console.log(x));
+out.text.forEach((x) => console.log(x));
