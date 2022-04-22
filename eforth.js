@@ -8,11 +8,7 @@ const vars = {};
 const cnsts = {};
 
 const bifs = {
-  "0<": [
-    "  pop rax",
-    "  cqo",
-    "  push rdx"
-  ],
+  "0<": ["  pop rax", "  cqo", "  push rdx"],
   "=": [
     "  xor rax, rax",
     "  pop rdx",
@@ -21,18 +17,10 @@ const bifs = {
     "  jnz short .equ1",
     "  dec rax",
     ".equ1:",
-    "  push rax"
+    "  push rax",
   ],
-  "over": [
-    `  mov rax, [rsp + ${CELLL}]`,
-    "  push rax"
-  ],
-  "swap": [
-    "  pop rbx",
-    "  pop rax",
-    "  push rbx",
-    "  push rax"
-  ],
+  over: [`  mov rax, [rsp + ${CELLL}]`, "  push rax"],
+  swap: ["  pop rbx", "  pop rax", "  push rbx", "  push rax"],
   "m/mod": [
     "  pop rbx",
     "  pop rdx",
@@ -48,28 +36,13 @@ const bifs = {
     "  mov rax, -1",
     "  push rax",
     "  push rax",
-    ".msm3"
+    ".msm3",
   ],
-  "dup": [
-    "  pop rax",
-    "  push rax",
-    "  push rax"
-  ],
-  "+!": [
-    "  pop rbx",
-    "  pop rax",
-    "  add [rbx], rax"
-  ],
-  "r@": [
-    "  push qword [rbp]"
-  ],
-  "drop": [
-    "  pop rax"
-  ],
-  "@": [
-    "  pop rbx",
-    "  push qword [rbx]"
-  ],
+  dup: ["  pop rax", "  push rax", "  push rax"],
+  "+!": ["  pop rbx", "  pop rax", "  add [rbx], rax"],
+  "r@": ["  push qword [rbp]"],
+  drop: ["  pop rax"],
+  "@": ["  pop rbx", "  push qword [rbx]"],
 };
 
 const words = {};
@@ -94,66 +67,57 @@ variable sum
 euler1
 `;
 
-function check(token, i, tokens) {
-  if (bifs[token]) {
-    //console.log(token, "bif");
-  } else if (words[token]) {
-    //console.log(token, "word");
-  } else if (cnsts[token]) {
-    //console.log(token, "const", cnsts[token]);
-  } else if (vars[token]) {
-    //console.log(token, "var");
-  } else {
-    const n = parseInt(token, 10);
-
-    if (isNaN(n)) {
-      console.log(token, "?");
-    } else {
-      if (tokens[i + 1] === "constant") {
-        cnsts[tokens[i + 2]] = n;
-	return 2;
-      }
-
-      //console.log(token, "nr");
-    }
-  }
-
-  return 0;
-}
-
 function build(code) {
-  const trim = x => x.trim();
-  const rblank = x => x !== "";
+  const trim = (x) => x.trim();
+  const rblank = (x) => x !== "";
 
   const tokens = code.replace(/\n/g, " ").split(" ").map(trim).filter(rblank);
-
-  // don't actually need compile mode
-  let compileMode = false;
 
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
 
-    if (compileMode) {
-      if (token === ";") {
-      	 compileMode = false;
-	 continue;
-      }
+    // variable
 
-      i += check(token, i, tokens);
-    } else {
-      if (token === ":") {
-      	 compileMode = true;
-	 words[tokens[++i]] = id++;
-	 continue;
-      }
-
-      if (token === "variable") {
-	 vars[tokens[++i]] = id++;
-	 continue;
-      }
-
-      i += check(token, i, tokens);
+    if (token === "variable") {
+      vars[tokens[++i]] = id++;
+      continue;
     }
+
+    // word def
+
+    if (token === ":") {
+      words[tokens[++i]] = id++;
+      continue;
+    }
+
+    if (token === ";") {
+      continue;
+    }
+
+    if (bifs[token]) {
+      //console.log(token, "bif");
+    } else if (words[token]) {
+      //console.log(token, "word");
+    } else if (cnsts[token]) {
+      //console.log(token, "const", cnsts[token]);
+    } else if (vars[token]) {
+      //console.log(token, "var");
+    } else {
+      const n = parseInt(token, 10);
+
+      if (isNaN(n)) {
+        console.log(token, "?");
+      } else {
+        if (tokens[i + 1] === "constant") {
+          cnsts[tokens[i + 2]] = n;
+          i += 2;
+        }
+
+        //console.log(token, "nr");
+      }
+    }
+
+    //i += check(token, i, tokens);
   }
 }
 
