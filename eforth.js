@@ -8,6 +8,7 @@ let id = 1;
 const vars = {};
 const cnsts = {};
 const output = {};
+const ifs = [];
 
 function isInline(name) {
   return bifs[name].length <= INLINE;
@@ -98,8 +99,9 @@ function build(code, out) {
       words[name] = wId;
 
       out.text = out.text.concat([
+        "",
+        `;; ${name}`,
         `w${wId}:`,
-        `  ; ${name}`,
         "  xchg rbp, rsp",
       ]);
 
@@ -108,6 +110,40 @@ function build(code, out) {
 
     if (token === ";") {
       out.text = out.text.concat(["", "  xchg rbp, rsp", "  ret", ""]);
+
+      continue;
+    }
+
+    if (token === "if") {
+      const ifId = id++;
+      ifs.push({id: ifId, els: false});
+
+      out.text = out.text.concat(["", `  ; if ${ifId}`, "  pop rax", "  or rax, rax", `  jz short .conseq_end_${ifId}`]);
+
+      continue;
+    }
+
+    if (token === "else") {
+      const iff = ifs[ifs.length - 1];
+      iff.else = true;
+
+      out.text = out.text.concat(["", `  ; if else ${iff.id}`, `  jz short .end_${iff.id}`, , `.conseq_end_${iff.id}:`]);
+
+      continue;
+    }
+
+    if (token === "then") {
+      const iff = ifs.pop();
+
+      out.text.push("");
+
+      if (iff.els) {
+        out.text.push(`  ; if else ${iff.id}`);
+        out.text.push(`.alt_end_${iff.id}:`);
+      } else {
+        out.text.push(`  ; if end ${iff.id}`);
+        out.text.push(`.conseq_end_${iff.id}:`);
+      }
 
       continue;
     }
