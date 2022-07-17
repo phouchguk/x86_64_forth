@@ -224,7 +224,7 @@ NEXT1:	add rbp, CELLL		; pop loop index
 	$CODE 2,'C@',CAT
 	pop rbx			; pop address b
 	xor rax, rax		; clear rax to receive one byte
-	mov al, [ebx]		; get one byte c at b
+	mov al, [rbx]		; get one byte c at b
 	push rax		; push c
 	$NEXT
 
@@ -914,7 +914,7 @@ TCHA1:
 
 
 	;; @EXECUTE ( a -- )
-	;; Execute vector store in address a.
+	;; Execute vector stored in address a.
 	$COLON 8,'@EXECUTE',ATEXE
 	dq ATT,QDUP		; address or zero?
 	dq QBRAN,EXE1

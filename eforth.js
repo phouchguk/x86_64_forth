@@ -9,13 +9,19 @@ const vars = {};
 const cnsts = {};
 const output = {};
 const ifs = [];
+const fors = [];
 
 function isInline(name) {
   return bifs[name].length <= INLINE;
 }
 
 const bifs = {
-  "0<": ["  pop rax", "  cqo", "  push rdx"],
+    "!": ["  pop rbx", "  pop qword [rbx]"],
+    "@": ["  pop rbx", "  push qword [rbx]"],
+    "c!": ["  pop rbx", "  pop rax", "  mov [rbx], al"],
+    "c@": ["  pop rbx", "  xor rax, rax", "  mov al, [rbx]", "  push rax"],
+    "0<": ["  pop rax", "  cqo", "  push rdx"],
+    "xor": ["  pop rax", "  pop rbx", "  xor rax, rbx", "  push rax"],
   "=": [
     "  xor rax, rax",
     "  pop rdx",
@@ -45,6 +51,24 @@ const bifs = {
     "  push rax",
     ".msm3",
   ],
+    "um/mod": [
+	"  pop rbx",
+	"  pop rdx",
+	"  pop rax",
+	"  or rbx, rbx",
+	"  jnz short .umm1",
+	".umm:",
+	"  mov rax, -1",
+	"  push rax",
+	"  push rax",
+	"  jmp .umm2",
+	".umm1:",
+	"  div rbx",
+	"  push rdx",
+	"  push rax",
+	".umm2:"
+    ],
+    type: ["  pop rdx", "  pop rsi", "  mov rax, 1", "mov rdi, 1", "syscall"],
   dup: ["  pop rax", "  push rax", "  push rax"],
   "+!": ["  pop rbx", "  pop rax", "  add [rbx], rax"],
   "r@": ["  push qword [rbp]"],
@@ -53,26 +77,6 @@ const bifs = {
 };
 
 const words = {};
-
-const std = `
-: /mod over 0< swap m/mod ;
-: mod /mod drop ;
-: / /mod swap drop ;
-`;
-
-const code = `
-999 constant start
-variable sum
-
-: 0= 0 = ;
-: nmod over swap mod 0= ;
-: acc dup sum +! ;
-: mod35 3 nmod if acc else 5 nmod if acc then then ;
-: countdown for r@ mod35 drop next ;
-: euler1 start countdown sum @ . ;
-
-euler1
-`;
 
 function build(code, out) {
   const trim = (x) => x.trim();
@@ -148,6 +152,23 @@ function build(code, out) {
       continue;
     }
 
+    if (token === "for") {
+      // start for-next loop
+
+      const forId = id++;
+      fors.push({ id: forId });
+
+      out.text = out.text.concat([
+         "",
+         `  ; for ${forId}`,
+	 `  sub rbp, ${CELLL}`,
+	 "  pop qword [rbp]",
+	 `.for_${forId}:`
+      ]);
+
+      continue;
+    }
+
     if (bifs[token]) {
       if (isInline(token)) {
         out.text.push("");
@@ -200,13 +221,47 @@ function build(code, out) {
         if (tokens[i + 1] === "constant") {
           cnsts[tokens[i + 2]] = n;
           i += 2;
-        } else {
+	}  else {
           out.text = out.text.concat(["", `  mov rax, ${n}`, "  push rax"]);
         }
       }
     }
   }
 }
+
+const std = `
+variable base
+10 base !
+: /mod over 0< swap m/mod ;
+: mod /mod drop ;
+: / /mod swap drop ;
+
+: pad here 80 + ;
+: digit 9 over < 7 and + 48 + ;
+: extract 0 swap um/mod swap digit ;
+: <# pad hld ! ;
+: hold hld @ 1- dup hld ! c! ;
+: # base @ extract hold ;
+: sign 0< if else 45 hold then ;
+: #> drop hld @ pad over - ;
+: str dup >r abs <# # r> sign #> ;
+; u. <# # #> space type ;
+: . base @ 10 xor if str space type else u. then ;
+`;
+
+const code = `
+999 constant start
+variable sum
+
+: 0= 0 = ;
+: nmod over swap mod 0= ;
+: acc dup sum +! ;
+: mod35 3 nmod if acc else 5 nmod if acc then then ;
+: countdown for r@ mod35 drop next ;
+: euler1 start countdown sum @ . ;
+
+euler1
+`;
 
 const pre = { text: [] };
 const out = { text: [] };
@@ -225,5 +280,5 @@ for (const k in output) {
   pre.text.push("");
 }
 
-pre.text.forEach((x) => console.log(x));
-out.text.forEach((x) => console.log(x));
+//pre.text.forEach((x) => console.log(x));
+//out.text.forEach((x) => console.log(x));
